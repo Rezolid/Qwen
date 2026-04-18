@@ -1,0 +1,256 @@
+[gd_scene load_steps=8 format=3 uid="uid://main_scene"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="2_gm"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="3_player"]
+[ext_resource type="Script" path="res://scripts/environment_manager.gd" id="4_env"]
+[ext_resource type="Script" path="res://scripts/game_ui.gd" id="5_ui"]
+
+[sub_resource type="WorldEnvironment" id="WorldEnvironment_1"]
+ambient_light_source = 2
+ambient_light_color = Color(0.2, 0.2, 0.2, 1)
+ambient_light_energy = 0.6
+glow_enabled = false
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="GameManager" type="Node3D" parent="."]
+script = ExtResource("2_gm")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+script = ExtResource("3_player")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+current = true
+fov = 75.0
+near = 0.1
+far = 1000.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.5
+height = 1.8
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="EnvironmentManager" type="Node3D" parent="."]
+script = ExtResource("4_env")
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+rotation = -1.5708, 0, 0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(200, 200)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.239, 0.157, 0.094, 1)
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_ground")
+material_override = SubResource("StandardMaterial3D_ground")
+cast_shadow = 0
+receive_shadow = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.433, 0.25, 0, 0.5, 0.866, -0.5, -0.75, 0.433, 50, 100, 50)
+light_color = Color(1, 1, 1, 1)
+light_energy = 0.8
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("WorldEnvironment_1")
+
+[node name="UI" type="CanvasLayer" parent="."]
+script = ExtResource("5_ui")
+
+[node name="Crosshair" type="Control" parent="UI"]
+layout_mode = 0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+
+[node name="CenterLineV" type="ColorRect" parent="UI/Crosshair"]
+layout_mode = 1
+offset_left = 9.0
+offset_top = 0.0
+offset_right = 11.0
+offset_bottom = 20.0
+color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="CenterLineH" type="ColorRect" parent="UI/Crosshair"]
+layout_mode = 1
+offset_left = 0.0
+offset_top = 9.0
+offset_right = 20.0
+offset_bottom = 11.0
+color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="UI"]
+layout_mode = 0
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 210.0
+offset_bottom = 60.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/MarginContainer"]
+layout_mode = 2
+
+[node name="MoneyLabel" type="Label" parent="UI/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Money: $0"
+
+[node name="WoodLabel" type="Label" parent="UI/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Wood: 0"
+
+[node name="HealthBar" type="ProgressBar" parent="UI"]
+layout_mode = 0
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 210.0
+offset_bottom = 70.0
+value = 100.0
+
+[node name="LocationLabel" type="Label" parent="UI"]
+layout_mode = 0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -150.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 40.0
+text = "🌲 Forest"
+horizontal_alignment = 2
+
+[node name="InventoryContainer" type="VBoxContainer" parent="UI"]
+layout_mode = 0
+anchors_preset = 2
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = -10.0
+
+[node name="1" type="Button" parent="UI/InventoryContainer"]
+layout_mode = 2
+text = "1. Hands"
+pressed = true
+
+[node name="2" type="Button" parent="UI/InventoryContainer"]
+layout_mode = 2
+text = "2. Wooden Axe"
+
+[node name="3" type="Button" parent="UI/InventoryContainer"]
+layout_mode = 2
+text = "3. Rifle"
+
+[node name="BuildMenu" type="VBoxContainer" parent="UI"]
+visible = false
+layout_mode = 0
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -150.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="wall" type="Button" parent="UI/BuildMenu"]
+layout_mode = 2
+text = "Wooden Wall ($50)"
+
+[node name="floor" type="Button" parent="UI/BuildMenu"]
+layout_mode = 2
+text = "Wooden Floor ($40)"
+
+[node name="flooring" type="Button" parent="UI/BuildMenu"]
+layout_mode = 2
+text = "Wooden Flooring ($30)"
+
+[node name="ladder" type="Button" parent="UI/BuildMenu"]
+layout_mode = 2
+text = "Ladder ($25)"
+
+[node name="InstructionsPanel" type="Panel" parent="UI"]
+layout_mode = 0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = -300.0
+offset_top = -200.0
+offset_right = 300.0
+offset_bottom = 200.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/InstructionsPanel"]
+layout_mode = 0
+anchors_preset = 15
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = -280.0
+offset_top = -180.0
+offset_right = 280.0
+offset_bottom = 180.0
+
+[node name="Title" type="Label" parent="UI/InstructionsPanel/VBoxContainer"]
+layout_mode = 2
+text = "🌲 Forest Survival FPS 🧟"
+horizontal_alignment = 1
+
+[node name="Controls" type="Label" parent="UI/InstructionsPanel/VBoxContainer"]
+layout_mode = 2
+text = "WASD - Move
+Mouse - Look around
+Left Click - Use item / Shoot / Cut tree
+1-3 - Select inventory item
+B - Toggle build menu
+E - Interact with buildings
+Cut trees for wood • Kill zombies for money • Build structures!"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="UI/InstructionsPanel/VBoxContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "CLICK TO START"
+
+[node name="DamageOverlay" type="ColorRect" parent="UI"]
+visible = false
+layout_mode = 0
+anchors_preset = 15
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0, 0, 0.3)
