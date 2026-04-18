@@ -245,26 +245,29 @@
         };
 
         // Three.js setup
-        let scene, camera, renderer, controls;
-        let playerVelocity = new THREE.Vector3();
-        let playerDirection = new THREE.Vector3();
+        let scene, camera, renderer;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let canJump = true;
-        
+
+        // Player hands and weapons
+        let handsGroup, axeMesh, rifleMesh;
+
         // Game objects
         const trees = [];
         const zombies = [];
         const buildings = [];
         const projectiles = [];
         const locationPortals = [];
-        
+
         // Configuration
+        const PLAYER_SPEED = 15.0; // Increased speed
+        const ZOMBIE_SPEED = 0.03; // Slow zombie speed
+
         const LOCATIONS = {
             forest: { color: 0x228B22, groundColor: 0x3d2817, fogColor: 0x1a4d1a },
             field: { color: 0x90EE90, groundColor: 0x8B7355, fogColor: 0x87CEEB },
             swamp: { color: 0x556B2F, groundColor: 0x2f4f2f, fogColor: 0x3d5c3d }
         };
-        
+
         const BUILD_COSTS = {
             wall: 50,
             floor: 40,
