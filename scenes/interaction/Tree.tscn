@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://tree123"]
+
+[ext_resource type="Script" path="res://scripts/interaction/Tree.gd" id="1_tree"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_tree"]
+radius = 0.5
+height = 4.0
+
+[node name="Tree" type="Node3D"]
+script = ExtResource("1_tree")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+shape = SubResource("CylinderShape3D_tree")

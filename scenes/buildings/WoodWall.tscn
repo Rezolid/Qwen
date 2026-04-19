@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://wall123"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall"]
+size = Vector3(2, 2, 0.2)
+
+[node name="WoodWall" type="StaticBody3D" groups=["buildings"]]
+collision_layer = 8
+collision_mask = 3
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_wall")
