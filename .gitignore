@@ -1,40 +1,25 @@
 ```
 # Godot-specific ignores
 *.import
-*.uid
 export_presets.cfg
-.autoload_register
-.editor_settings-4.tres
 .godot/
 
-# Build artifacts
-*.exe
-*.dll
-*.so
-*.dylib
-*.app
-
 # Dependencies
-node_modules/
-vendor/
+res://addons/
+*.pck
 
-# Logs and temp files
-*.log
+# Editor
+.vscode/
+.idea/
+
+# System
+.DS_Store
+Thumbs.db
 *.tmp
-*.temp
+*.log
 
 # Environment
 .env
 .env.local
 *.env.*
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS specific
-.DS_Store
-Thumbs.db
 ```
