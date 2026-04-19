@@ -1,1897 +1,2241 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Selene Outpost - Lunar Base Explorer</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            overflow: hidden;
-            font-family: 'Courier New', monospace;
-            background: #000;
-        }
-
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* HUD Elements */
-        #hud {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        #oxygen-bar {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 200px;
-            height: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #00ffff;
-            border-radius: 4px;
-        }
-
-        #oxygen-fill {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #00ffff, #0088ff);
-            transition: width 0.3s;
-        }
-
-        #oxygen-label {
-            position: absolute;
-            top: -25px;
-            right: 0;
-            color: #00ffff;
-            font-size: 14px;
-            text-shadow: 0 0 5px #00ffff;
-        }
-
-        #interaction-prompt {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-size: 18px;
-            text-align: center;
-            text-shadow: 0 0 10px #00ffff;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(0, 255, 255, 0.5);
-            border-radius: 50%;
-        }
-
-        #crosshair::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 4px;
-            height: 4px;
-            background: #00ffff;
-            border-radius: 50%;
-        }
-
-        /* Log Terminal Overlay */
-        #terminal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            pointer-events: auto;
-            z-index: 100;
-        }
-
-        #terminal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 600px;
-            max-width: 90%;
-            background: rgba(0, 20, 40, 0.95);
-            border: 2px solid #00ffff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
-        }
-
-        #terminal-title {
-            color: #00ffff;
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px #00ffff;
-            border-bottom: 1px solid #00ffff;
-            padding-bottom: 10px;
-        }
-
-        #terminal-text {
-            color: #fff;
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            white-space: pre-wrap;
-        }
-
-        #terminal-close {
-            background: transparent;
-            border: 2px solid #00ffff;
-            color: #00ffff;
-            padding: 10px 30px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.3s;
-            font-family: 'Courier New', monospace;
-        }
-
-        #terminal-close:hover {
-            background: #00ffff;
-            color: #000;
-        }
-
-        /* Observation Mode */
-        #observation-overlay {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 20, 40, 0.9);
-            border: 2px solid #00ffff;
-            border-radius: 8px;
-            padding: 20px;
-            color: #fff;
-            font-size: 16px;
-            text-align: center;
-            display: none;
-            pointer-events: none;
-        }
-
-        /* Start Screen */
-        #start-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            pointer-events: auto;
-        }
-
-        #start-screen h1 {
-            color: #00ffff;
-            font-size: 48px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px #00ffff;
-        }
-
-        #start-screen p {
-            color: #fff;
-            font-size: 18px;
-            margin-bottom: 30px;
-            text-align: center;
-            max-width: 600px;
-            line-height: 1.6;
-        }
-
-        #start-button {
-            background: transparent;
-            border: 3px solid #00ffff;
-            color: #00ffff;
-            padding: 15px 50px;
-            font-size: 20px;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s;
-            font-family: 'Courier New', monospace;
-        }
-
-        #start-button:hover {
-            background: #00ffff;
-            color: #000;
-        }
-
-        .controls-info {
-            margin-top: 30px;
-            color: #888;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .controls-info div {
-            margin: 5px 0;
-        }
-
-        /* Mobile Controls */
-        #mobile-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            height: 150px;
-            display: none;
-            pointer-events: none;
-        }
-
-        .joystick-zone {
-            position: absolute;
-            bottom: 20px;
-            width: 150px;
-            height: 150px;
-            border: 2px dashed rgba(0, 255, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: auto;
-        }
-
-        #left-joystick {
-            left: 20px;
-        }
-
-        #right-joystick {
-            right: 20px;
-        }
-
-        .joystick-knob {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            background: rgba(0, 255, 255, 0.5);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        @media (max-width: 768px) {
-            #mobile-controls {
-                display: block;
-            }
-            
-            #start-screen p {
-                font-size: 14px;
-            }
-            
-            #start-screen h1 {
-                font-size: 32px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Selene Outpost - Moon Base Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: 'Courier New', monospace;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    /* HUD */
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background: rgba(0, 255, 255, 0.8);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    
+    #interaction-prompt {
+      position: absolute;
+      top: 55%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #0ff;
+      font-size: 16px;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+    }
+    
+    #interaction-prompt.visible {
+      opacity: 1;
+    }
+    
+    #status-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    .bar-container {
+      width: 150px;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid #333;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    
+    .bar-fill {
+      height: 100%;
+      transition: width 0.3s;
+    }
+    
+    #oxygen-bar {
+      background: linear-gradient(90deg, #00ffff, #0088ff);
+    }
+    
+    #power-bar {
+      background: linear-gradient(90deg, #ffaa00, #ff4400);
+    }
+    
+    #module-name {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #0ff;
+      font-size: 18px;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    }
+    
+    #mission-clock {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #fff;
+      font-size: 16px;
+    }
+    
+    /* Terminal UI */
+    #terminal-ui {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      z-index: 200;
+      pointer-events: auto;
+    }
+    
+    #terminal-ui.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .terminal-screen {
+      width: 80%;
+      max-width: 800px;
+      height: 70%;
+      background: #001100;
+      border: 2px solid #00ff00;
+      border-radius: 10px;
+      padding: 30px;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+    }
+    
+    .terminal-screen::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 0, 0.05) 2px,
+        rgba(0, 255, 0, 0.05) 4px
+      );
+      pointer-events: none;
+    }
+    
+    .terminal-text {
+      color: #00ff00;
+      font-size: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+    }
+    
+    .terminal-title {
+      color: #00ffff;
+      font-size: 20px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #00ff00;
+      padding-bottom: 10px;
+    }
+    
+    .close-terminal {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #ff4444;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 10px;
+      border: 1px solid #ff4444;
+      border-radius: 5px;
+      transition: all 0.3s;
+    }
+    
+    .close-terminal:hover {
+      background: #ff4444;
+      color: #000;
+    }
+    
+    /* Observation Progress */
+    #observation-progress {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #0ff;
+      border-radius: 4px;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    #observation-progress.visible {
+      opacity: 1;
+    }
+    
+    #observation-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00ffff, #0088ff);
+      transition: width 0.1s;
+    }
+    
+    /* Mobile Controls */
+    #mobile-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 150;
+      display: none;
+    }
+    
+    #mobile-controls.active {
+      display: block;
+    }
+    
+    .touch-zone {
+      position: absolute;
+      bottom: 20px;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      pointer-events: auto;
+    }
+    
+    #joystick-zone {
+      left: 20px;
+    }
+    
+    #look-zone {
+      right: 20px;
+      bottom: 180px;
+      width: 200px;
+      height: 200px;
+    }
+    
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 255, 255, 0.5);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    
+    #mobile-interact {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 255, 255, 0.3);
+      border: 2px solid rgba(0, 255, 255, 0.6);
+      border-radius: 50%;
+      pointer-events: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    #mobile-interact:active {
+      background: rgba(0, 255, 255, 0.6);
+    }
+    
+    /* Debug Overlay */
+    #debug-overlay {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #0f0;
+      padding: 15px;
+      border-radius: 5px;
+      font-size: 12px;
+      display: none;
+      z-index: 300;
+    }
+    
+    #debug-overlay.active {
+      display: block;
+    }
+    
+    /* Start Screen */
+    #start-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 500;
+      color: #fff;
+    }
+    
+    #start-screen h1 {
+      color: #0ff;
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+    
+    #start-screen p {
+      font-size: 18px;
+      margin-bottom: 10px;
+      text-align: center;
+      max-width: 600px;
+    }
+    
+    #start-button {
+      margin-top: 30px;
+      padding: 15px 40px;
+      font-size: 20px;
+      background: transparent;
+      color: #0ff;
+      border: 2px solid #0ff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Courier New', monospace;
+    }
+    
+    #start-button:hover {
+      background: #0ff;
+      color: #000;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="canvas-container"></div>
-        
-        <div id="hud">
-            <div id="oxygen-bar">
-                <div id="oxygen-label">OXYGEN</div>
-                <div id="oxygen-fill"></div>
-            </div>
-            <div id="crosshair"></div>
-            <div id="interaction-prompt">Press E to Interact</div>
-        </div>
-
-        <div id="terminal-overlay">
-            <div id="terminal-content">
-                <div id="terminal-title">TERMINAL ACCESS</div>
-                <div id="terminal-text"></div>
-                <button id="terminal-close">CLOSE</button>
-            </div>
-        </div>
-
-        <div id="observation-overlay">
-            Observation: Earth appears calm. No signals detected.
-        </div>
-
-        <div id="start-screen">
-            <h1>SELENE OUTPOST</h1>
-            <p>You are the first human to arrive at the autonomous lunar base. <br>Explore, investigate anomalies, and uncover the truth.</p>
-            <button id="start-button">ENTER BASE</button>
-            <div class="controls-info">
-                <div><strong>DESKTOP:</strong> WASD = Move | Mouse = Look | E = Interact | ESC = Pause</div>
-                <div><strong>MOBILE:</strong> Left Stick = Move | Right Stick = Look | Tap = Interact</div>
-            </div>
-        </div>
-
-        <div id="mobile-controls">
-            <div id="left-joystick" class="joystick-zone">
-                <div class="joystick-knob"></div>
-            </div>
-            <div id="right-joystick" class="joystick-zone">
-                <div class="joystick-knob"></div>
-            </div>
-        </div>
+  <canvas id="gameCanvas"></canvas>
+  
+  <div id="hud">
+    <div id="crosshair"></div>
+    <div id="interaction-prompt"></div>
+    <div id="observation-progress">
+      <div id="observation-fill"></div>
     </div>
+    <div id="module-name">AIRLOCK ALPHA</div>
+    <div id="mission-clock">DAY 1 | 08:00</div>
+    <div id="status-bar">
+      <div class="status-item">
+        <span>O₂:</span>
+        <div class="bar-container">
+          <div id="oxygen-bar" class="bar-fill" style="width: 100%"></div>
+        </div>
+      </div>
+      <div class="status-item">
+        <span>PWR:</span>
+        <div class="bar-container">
+          <div id="power-bar" class="bar-fill" style="width: 75%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="terminal-ui">
+    <div class="terminal-screen">
+      <div class="close-terminal" onclick="game.terminalManager.closeTerminal()">✕</div>
+      <div class="terminal-title" id="terminal-title">SYSTEM LOG</div>
+      <div class="terminal-text" id="terminal-text"></div>
+    </div>
+  </div>
+  
+  <div id="mobile-controls">
+    <div id="joystick-zone" class="touch-zone">
+      <div id="joystick-knob"></div>
+    </div>
+    <div id="look-zone" class="touch-zone"></div>
+    <div id="mobile-interact">HOLD</div>
+  </div>
+  
+  <div id="debug-overlay">
+    <div>FPS: <span id="fps-counter">0</span></div>
+    <div>Pos: <span id="pos-debug">0, 0, 0</span></div>
+    <div>Module: <span id="module-debug">-</span></div>
+  </div>
+  
+  <div id="start-screen">
+    <h1>SELENE OUTPOST</h1>
+    <p>Moon Base Explorer</p>
+    <br>
+    <p><strong>DESKTOP CONTROLS:</strong></p>
+    <p>WASD - Move | Mouse - Look | E - Interact</p>
+    <p>Hold E - Observe | Shift - Sprint | Esc - Pause</p>
+    <br>
+    <p><strong>MOBILE CONTROLS:</strong></p>
+    <p>Left Joystick - Move | Right Zone - Look</p>
+    <p>Tap - Interact | Hold - Observe</p>
+    <button id="start-button">BEGIN MISSION</button>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        // ============================================
-        // TEXTURE GENERATOR - Creates procedural textures
-        // ============================================
-        class TextureGenerator {
-            static createLunarSurfaceTexture() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024;
-                canvas.height = 1024;
-                const ctx = canvas.getContext('2d');
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+/**
+ * SELENE OUTPOST - MOON BASE EXPLORER
+ * 
+ * CONTROLS:
+ * Desktop: WASD move, Mouse look (Pointer Lock), E interact, Hold E observe, Shift sprint, Esc pause
+ * Mobile: Left joystick move, Right zone look, Tap interact, Hold observe
+ * 
+ * TESTING: Open index.html in browser or run `python -m http.server` and navigate to localhost:8000
+ * 
+ * ADDING LOGS: Add entries to NarrativeSystem.logDatabase with module ID and content
+ * ADDING MODULES: Extend WorldBuilder.moduleConfigs with new module definition
+ * 
+ * KNOWN LIMITATIONS:
+ * - Simplified collision (bounding boxes only)
+ * - No save system
+ * - Limited audio spatialization
+ * 
+ * EXTENSION POINTS:
+ * - Add more terminal puzzles
+ * - Implement inventory system
+ * - Add NPC robots with AI
+ * - Expand narrative branches
+ */
 
-                // Base grey color
-                ctx.fillStyle = '#888888';
-                ctx.fillRect(0, 0, 1024, 1024);
+// ============== UTILITIES ==============
+const Utils = {
+  clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
+  lerp: (a, b, t) => a + (b - a) * t,
+  degToRad: (deg) => deg * Math.PI / 180,
+  randomRange: (min, max) => Math.random() * (max - min) + min,
+  generateId: () => Math.random().toString(36).substr(2, 9)
+};
 
-                // Add noise
-                for (let i = 0; i < 50000; i++) {
-                    const x = Math.random() * 1024;
-                    const y = Math.random() * 1024;
-                    const gray = Math.floor(Math.random() * 100 + 50);
-                    ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
-                    ctx.fillRect(x, y, 2, 2);
-                }
-
-                // Add craters
-                for (let i = 0; i < 200; i++) {
-                    const x = Math.random() * 1024;
-                    const y = Math.random() * 1024;
-                    const radius = Math.random() * 30 + 5;
-                    
-                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-                    gradient.addColorStop(0, '#444444');
-                    gradient.addColorStop(0.7, '#666666');
-                    gradient.addColorStop(1, '#888888');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(x, y, radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                const texture = new THREE.CanvasTexture(canvas);
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.wrapT = THREE.RepeatWrapping;
-                return texture;
-            }
-
-            static createHexagonalPanelTexture() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 512;
-                canvas.height = 512;
-                const ctx = canvas.getContext('2d');
-
-                // Base color
-                ctx.fillStyle = '#e0e0e0';
-                ctx.fillRect(0, 0, 512, 512);
-
-                // Draw hexagon pattern
-                const hexSize = 64;
-                const hexHeight = hexSize * Math.sqrt(3);
-                
-                ctx.strokeStyle = '#00ffff';
-                ctx.lineWidth = 2;
-                ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
-
-                for (let row = 0; row < 10; row++) {
-                    for (let col = 0; col < 10; col++) {
-                        const x = col * hexSize * 1.5 + (row % 2) * hexSize * 0.75;
-                        const y = row * hexHeight;
-                        
-                        ctx.beginPath();
-                        for (let i = 0; i < 6; i++) {
-                            const angle = (Math.PI / 3) * i;
-                            const hx = x + hexSize * 0.5 * Math.cos(angle);
-                            const hy = y + hexSize * 0.5 * Math.sin(angle);
-                            if (i === 0) ctx.moveTo(hx, hy);
-                            else ctx.lineTo(hx, hy);
-                        }
-                        ctx.closePath();
-                        ctx.stroke();
-                        ctx.fill();
-                    }
-                }
-
-                const texture = new THREE.CanvasTexture(canvas);
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.wrapT = THREE.RepeatWrapping;
-                return texture;
-            }
-
-            static createScreenTexture() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 256;
-                canvas.height = 256;
-                const ctx = canvas.getContext('2d');
-
-                // Dark background
-                ctx.fillStyle = '#001122';
-                ctx.fillRect(0, 0, 256, 256);
-
-                // Grid lines
-                ctx.strokeStyle = '#00ffff';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 256; i += 16) {
-                    ctx.beginPath();
-                    ctx.moveTo(i, 0);
-                    ctx.lineTo(i, 256);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(0, i);
-                    ctx.lineTo(256, i);
-                    ctx.stroke();
-                }
-
-                // Random data points
-                for (let i = 0; i < 100; i++) {
-                    const x = Math.random() * 256;
-                    const y = Math.random() * 256;
-                    ctx.fillStyle = Math.random() > 0.5 ? '#00ffff' : '#0088ff';
-                    ctx.fillRect(x, y, 2, 2);
-                }
-
-                const texture = new THREE.CanvasTexture(canvas);
-                return texture;
-            }
-
-            static createEarthTexture() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 512;
-                canvas.height = 256;
-                const ctx = canvas.getContext('2d');
-
-                // Ocean
-                ctx.fillStyle = '#1a4d7c';
-                ctx.fillRect(0, 0, 512, 256);
-
-                // Continents (simplified)
-                ctx.fillStyle = '#2d6b2d';
-                // North America
-                ctx.beginPath();
-                ctx.ellipse(150, 80, 60, 40, 0, 0, Math.PI * 2);
-                ctx.fill();
-                // South America
-                ctx.beginPath();
-                ctx.ellipse(180, 160, 30, 50, 0.3, 0, Math.PI * 2);
-                ctx.fill();
-                // Europe/Africa
-                ctx.beginPath();
-                ctx.ellipse(280, 100, 40, 60, 0, 0, Math.PI * 2);
-                ctx.fill();
-                // Asia
-                ctx.beginPath();
-                ctx.ellipse(380, 80, 80, 50, 0, 0, Math.PI * 2);
-                ctx.fill();
-                // Australia
-                ctx.beginPath();
-                ctx.ellipse(420, 180, 30, 20, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Clouds
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-                for (let i = 0; i < 50; i++) {
-                    const x = Math.random() * 512;
-                    const y = Math.random() * 256;
-                    const radius = Math.random() * 20 + 5;
-                    ctx.beginPath();
-                    ctx.arc(x, y, radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                const texture = new THREE.CanvasTexture(canvas);
-                return texture;
-            }
+// ============== PROCEDURAL TEXTURES ==============
+class TextureGenerator {
+  static createHexPanelTexture(color = '#444444', emissive = false) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Background
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 512, 512);
+    
+    // Hexagonal pattern
+    const hexSize = 40;
+    const hexHeight = hexSize * Math.sqrt(3);
+    
+    for (let row = 0; row < 15; row++) {
+      for (let col = 0; col < 15; col++) {
+        const x = col * hexSize * 1.75 + (row % 2) * hexSize * 0.875;
+        const y = row * hexHeight * 0.75;
+        
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i;
+          const hx = x + hexSize * 0.9 * Math.cos(angle);
+          const hy = y + hexSize * 0.9 * Math.sin(angle);
+          if (i === 0) ctx.moveTo(hx, hy);
+          else ctx.lineTo(hx, hy);
         }
-
-        // ============================================
-        // AUDIO SYSTEM - Procedural sound effects
-        // ============================================
-        class AudioSystem {
-            constructor() {
-                this.audioContext = null;
-                this.initialized = false;
-            }
-
-            init() {
-                if (!this.initialized) {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    this.initialized = true;
-                }
-            }
-
-            playDoorSound() {
-                if (!this.initialized) return;
-                
-                const oscillator = this.audioContext.createOscillator();
-                const gainNode = this.audioContext.createGain();
-                const filter = this.audioContext.createBiquadFilter();
-
-                oscillator.connect(filter);
-                filter.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
-
-                oscillator.type = 'sawtooth';
-                oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 0.5);
-
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
-                filter.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.5);
-
-                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-
-                oscillator.start(this.audioContext.currentTime);
-                oscillator.stop(this.audioContext.currentTime + 0.5);
-            }
-
-            playTerminalSound() {
-                if (!this.initialized) return;
-                
-                const oscillator = this.audioContext.createOscillator();
-                const gainNode = this.audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
-
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
-
-                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
-
-                oscillator.start(this.audioContext.currentTime);
-                oscillator.stop(this.audioContext.currentTime + 0.1);
-            }
+        ctx.closePath();
+        
+        ctx.strokeStyle = emissive ? '#00ffff' : '#222222';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        if (emissive && Math.random() > 0.7) {
+          ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+          ctx.fill();
         }
-
-        // ============================================
-        // WORLD BUILDER - Generates the moon base
-        // ============================================
-        class WorldBuilder {
-            constructor(scene) {
-                this.scene = scene;
-                this.rooms = [];
-                this.doors = [];
-                this.interactables = [];
-                this.colliders = [];
-                
-                this.wallMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xe0e0e0,
-                    metalness: 0.3,
-                    roughness: 0.7
-                });
-
-                this.hexPanelMaterial = new THREE.MeshStandardMaterial({
-                    map: TextureGenerator.createHexagonalPanelTexture(),
-                    color: 0xffffff,
-                    metalness: 0.2,
-                    roughness: 0.8
-                });
-
-                this.screenMaterial = new THREE.MeshStandardMaterial({
-                    map: TextureGenerator.createScreenTexture(),
-                    emissive: 0x00ffff,
-                    emissiveIntensity: 0.5,
-                    toneMapped: false
-                });
-
-                this.floorMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x888888,
-                    metalness: 0.5,
-                    roughness: 0.9
-                });
-
-                this.ceilingMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xdddddd,
-                    metalness: 0.2,
-                    roughness: 0.8
-                });
-
-                this.accentMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x00ffff,
-                    emissive: 0x00ffff,
-                    emissiveIntensity: 0.8
-                });
-            }
-
-            buildBase() {
-                // Build all rooms
-                this.buildAirlock();
-                this.buildCorridor();
-                this.buildCentralHub();
-                this.buildLaboratory();
-                this.buildEngineering();
-                
-                // Add exterior view
-                this.buildExterior();
-                
-                // Add lighting
-                this.addLighting();
-            }
-
-            buildAirlock() {
-                const airlockGroup = new THREE.Group();
-                airlockGroup.name = 'Airlock';
-
-                // Floor
-                const floor = new THREE.Mesh(
-                    new THREE.CylinderGeometry(6, 6, 0.3, 32),
-                    this.floorMaterial
-                );
-                floor.rotation.x = Math.PI / 2;
-                floor.position.y = 0;
-                airlockGroup.add(floor);
-
-                // Ceiling
-                const ceiling = new THREE.Mesh(
-                    new THREE.CylinderGeometry(6, 6, 0.3, 32),
-                    this.ceilingMaterial
-                );
-                ceiling.rotation.x = Math.PI / 2;
-                ceiling.position.y = 4;
-                airlockGroup.add(ceiling);
-
-                // Walls (cylindrical sections)
-                for (let i = 0; i < 32; i++) {
-                    const angle = (i / 32) * Math.PI * 2;
-                    const wall = new THREE.Mesh(
-                        new THREE.BoxGeometry(1.2, 4, 0.3),
-                        this.hexPanelMaterial
-                    );
-                    wall.position.set(
-                        Math.cos(angle) * 6,
-                        2,
-                        Math.sin(angle) * 6
-                    );
-                    wall.rotation.y = -angle;
-                    airlockGroup.add(wall);
-                }
-
-                // Hexagonal door frame
-                const doorFrame = new THREE.Group();
-                doorFrame.name = 'DoorFrame';
-
-                // Create hexagonal frame
-                const hexRadius = 2.5;
-                for (let i = 0; i < 6; i++) {
-                    const angle = (Math.PI / 3) * i;
-                    const segment = new THREE.Mesh(
-                        new THREE.BoxGeometry(hexRadius * 0.8, 0.3, 0.3),
-                        this.accentMaterial
-                    );
-                    segment.position.set(
-                        Math.cos(angle) * hexRadius * 0.5,
-                        Math.sin(angle) * hexRadius * 0.5,
-                        0
-                    );
-                    segment.rotation.z = angle;
-                    doorFrame.add(segment);
-                }
-
-                doorFrame.position.set(6, 2, 0);
-                doorFrame.rotation.y = Math.PI / 2;
-                airlockGroup.add(doorFrame);
-
-                // Sliding door panel
-                const doorPanel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(2.3, 2.3, 0.2, 6),
-                    new THREE.MeshStandardMaterial({
-                        color: 0xcccccc,
-                        metalness: 0.6,
-                        roughness: 0.4
-                    })
-                );
-                doorPanel.rotation.x = Math.PI / 2;
-                doorPanel.position.set(6, 2, 0.1);
-                doorPanel.name = 'DoorPanel';
-                doorPanel.userData = { isDoor: true, isOpen: false, originalY: 2 };
-                airlockGroup.add(doorPanel);
-
-                // Add to doors array for interaction
-                this.doors.push({
-                    mesh: doorPanel,
-                    frame: doorFrame,
-                    group: airlockGroup,
-                    isOpen: false,
-                    animating: false
-                });
-
-                // Terminal in airlock
-                const terminal = this.createTerminal('System Status: Online. External Airlock: Sealed.');
-                terminal.position.set(-4, 1.5, 3);
-                terminal.rotation.y = -Math.PI / 4;
-                airlockGroup.add(terminal);
-                this.interactables.push({
-                    mesh: terminal,
-                    type: 'terminal',
-                    data: 'System Status: Online. External Airlock: Sealed.'
-                });
-
-                // Add collider
-                this.colliders.push(new THREE.CylinderGeometry(6, 6, 4, 32));
-
-                airlockGroup.position.set(0, 0, 0);
-                this.scene.add(airlockGroup);
-                this.rooms.push(airlockGroup);
-            }
-
-            buildCorridor() {
-                const corridorGroup = new THREE.Group();
-                corridorGroup.name = 'Corridor';
-
-                // Cylindrical tunnel
-                const tunnel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(3, 3, 15, 32, 1, true),
-                    this.hexPanelMaterial
-                );
-                tunnel.rotation.x = Math.PI / 2;
-                tunnel.position.set(0, 2, 7.5);
-                corridorGroup.add(tunnel);
-
-                // Handrails
-                for (let i = 0; i < 2; i++) {
-                    const handrail = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.1, 0.1, 15, 16),
-                        this.accentMaterial
-                    );
-                    handrail.rotation.x = Math.PI / 2;
-                    handrail.position.set(
-                        i === 0 ? 2.5 : -2.5,
-                        1.5,
-                        7.5
-                    );
-                    corridorGroup.add(handrail);
-                }
-
-                // Lights along corridor
-                for (let i = 0; i < 5; i++) {
-                    const lightStrip = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.5, 0.1, 2),
-                        this.accentMaterial
-                    );
-                    lightStrip.position.set(0, 3.5, i * 3 + 1.5);
-                    corridorGroup.add(lightStrip);
-                }
-
-                corridorGroup.position.set(6, 0, 0);
-                corridorGroup.rotation.y = Math.PI / 2;
-                this.scene.add(corridorGroup);
-                this.rooms.push(corridorGroup);
-            }
-
-            buildCentralHub() {
-                const hubGroup = new THREE.Group();
-                hubGroup.name = 'CentralHub';
-
-                // Domed ceiling
-                const dome = new THREE.Mesh(
-                    new THREE.SphereGeometry(10, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-                    this.ceilingMaterial
-                );
-                dome.position.y = 10;
-                hubGroup.add(dome);
-
-                // Circular floor
-                const floor = new THREE.Mesh(
-                    new THREE.CylinderGeometry(10, 10, 0.3, 64),
-                    this.floorMaterial
-                );
-                floor.position.y = 0;
-                hubGroup.add(floor);
-
-                // Large circular viewport to space/Earth
-                const viewportFrame = new THREE.Mesh(
-                    new THREE.TorusGeometry(4, 0.3, 16, 32),
-                    this.accentMaterial
-                );
-                viewportFrame.position.set(0, 5, 10);
-                viewportFrame.rotation.y = Math.PI / 2;
-                hubGroup.add(viewportFrame);
-
-                // Viewport glass
-                const viewportGlass = new THREE.Mesh(
-                    new THREE.CircleGeometry(3.7, 32),
-                    new THREE.MeshPhysicalMaterial({
-                        color: 0x88ccff,
-                        transparent: true,
-                        opacity: 0.3,
-                        metalness: 0.9,
-                        roughness: 0.1,
-                        transmission: 0.9
-                    })
-                );
-                viewportGlass.position.set(0, 5, 10.1);
-                viewportGlass.rotation.y = Math.PI / 2;
-                viewportGlass.name = 'Viewport';
-                viewportGlass.userData = { isViewport: true };
-                hubGroup.add(viewportGlass);
-                this.interactables.push({
-                    mesh: viewportGlass,
-                    type: 'viewport',
-                    data: 'Observation: Earth appears calm. No signals detected.'
-                });
-
-                // Holographic display in center
-                const hologramBase = new THREE.Mesh(
-                    new THREE.CylinderGeometry(1, 1, 0.5, 16),
-                    this.accentMaterial
-                );
-                hologramBase.position.set(0, 0.25, 0);
-                hubGroup.add(hologramBase);
-
-                // Central terminal
-                const terminal = this.createTerminal('Day 4: The robots are active again, but I didn\'t give the command.');
-                terminal.position.set(3, 1.5, -3);
-                terminal.rotation.y = Math.PI;
-                hubGroup.add(terminal);
-                this.interactables.push({
-                    mesh: terminal,
-                    type: 'terminal',
-                    data: 'Day 4: The robots are active again, but I didn\'t give the command.'
-                });
-
-                hubGroup.position.set(21, 0, 0);
-                this.scene.add(hubGroup);
-                this.rooms.push(hubGroup);
-            }
-
-            buildLaboratory() {
-                const labGroup = new THREE.Group();
-                labGroup.name = 'Laboratory';
-
-                // Room structure
-                const floor = new THREE.Mesh(
-                    new THREE.BoxGeometry(12, 0.3, 10),
-                    this.floorMaterial
-                );
-                floor.position.y = 0;
-                labGroup.add(floor);
-
-                const ceiling = new THREE.Mesh(
-                    new THREE.BoxGeometry(12, 0.3, 10),
-                    this.ceilingMaterial
-                );
-                ceiling.position.y = 4;
-                labGroup.add(ceiling);
-
-                // Walls
-                const walls = [
-                    { pos: [0, 2, -5], rot: 0, size: [12, 4, 0.3] },
-                    { pos: [0, 2, 5], rot: 0, size: [12, 4, 0.3] },
-                    { pos: [-6, 2, 0], rot: Math.PI / 2, size: [10, 4, 0.3] },
-                    { pos: [6, 2, 0], rot: Math.PI / 2, size: [10, 4, 0.3] }
-                ];
-
-                walls.forEach(wall => {
-                    const mesh = new THREE.Mesh(
-                        new THREE.BoxGeometry(...wall.size),
-                        this.hexPanelMaterial
-                    );
-                    mesh.position.set(...wall.pos);
-                    mesh.rotation.y = wall.rot;
-                    labGroup.add(mesh);
-                });
-
-                // Lab equipment - microscopes
-                for (let i = 0; i < 3; i++) {
-                    const scope = new THREE.Group();
-                    
-                    const base = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.3, 0.4, 0.2, 16),
-                        this.wallMaterial
-                    );
-                    base.position.y = 0.1;
-                    scope.add(base);
-
-                    const arm = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.1, 0.1, 1, 8),
-                        this.accentMaterial
-                    );
-                    arm.position.y = 0.6;
-                    arm.rotation.x = Math.PI / 4;
-                    scope.add(arm);
-
-                    const lens = new THREE.Mesh(
-                        new THREE.SphereGeometry(0.15, 16, 16),
-                        new THREE.MeshPhysicalMaterial({
-                            color: 0x88ccff,
-                            transparent: true,
-                            opacity: 0.6,
-                            metalness: 0.9,
-                            roughness: 0.1
-                        })
-                    );
-                    lens.position.y = 1;
-                    scope.add(lens);
-
-                    scope.position.set(-3 + i * 3, 0.2, 3);
-                    labGroup.add(scope);
-                }
-
-                // Sample containers
-                for (let i = 0; i < 4; i++) {
-                    const container = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.2, 0.2, 0.5, 16),
-                        new THREE.MeshPhysicalMaterial({
-                            color: 0xffffaa,
-                            transparent: true,
-                            opacity: 0.7,
-                            metalness: 0.5,
-                            roughness: 0.2
-                        })
-                    );
-                    container.position.set(-2 + i * 1.5, 0.25, -3);
-                    labGroup.add(container);
-                }
-
-                // Lab terminal
-                const terminal = this.createTerminal('Analysis: Soil samples contain unknown crystalline structures.');
-                terminal.position.set(4, 1.5, 0);
-                terminal.rotation.y = -Math.PI / 2;
-                labGroup.add(terminal);
-                this.interactables.push({
-                    mesh: terminal,
-                    type: 'terminal',
-                    data: 'Analysis: Soil samples contain unknown crystalline structures.'
-                });
-
-                labGroup.position.set(21, 0, -15);
-                this.scene.add(labGroup);
-                this.rooms.push(labGroup);
-            }
-
-            buildEngineering() {
-                const engGroup = new THREE.Group();
-                engGroup.name = 'Engineering';
-
-                // Room structure
-                const floor = new THREE.Mesh(
-                    new THREE.BoxGeometry(14, 0.3, 12),
-                    this.floorMaterial
-                );
-                floor.position.y = 0;
-                engGroup.add(floor);
-
-                const ceiling = new THREE.Mesh(
-                    new THREE.BoxGeometry(14, 0.3, 12),
-                    this.ceilingMaterial
-                );
-                ceiling.position.y = 5;
-                engGroup.add(ceiling);
-
-                // Walls with red emergency lighting
-                const wallMaterial = new THREE.MeshStandardMaterial({
-                    color: 0xdddddd,
-                    emissive: 0xff0000,
-                    emissiveIntensity: 0.2
-                });
-
-                const walls = [
-                    { pos: [0, 2.5, -6], rot: 0, size: [14, 5, 0.3] },
-                    { pos: [0, 2.5, 6], rot: 0, size: [14, 5, 0.3] },
-                    { pos: [-7, 2.5, 0], rot: Math.PI / 2, size: [12, 5, 0.3] },
-                    { pos: [7, 2.5, 0], rot: Math.PI / 2, size: [12, 5, 0.3] }
-                ];
-
-                walls.forEach(wall => {
-                    const mesh = new THREE.Mesh(
-                        new THREE.BoxGeometry(...wall.size),
-                        wallMaterial
-                    );
-                    mesh.position.set(...wall.pos);
-                    mesh.rotation.y = wall.rot;
-                    engGroup.add(mesh);
-                });
-
-                // Reactor core in center
-                const reactor = new THREE.Group();
-                
-                const coreBase = new THREE.Mesh(
-                    new THREE.CylinderGeometry(2, 2, 1, 32),
-                    this.accentMaterial
-                );
-                coreBase.position.y = 0.5;
-                reactor.add(coreBase);
-
-                const coreColumn = new THREE.Mesh(
-                    new THREE.CylinderGeometry(1, 1, 3, 16),
-                    new THREE.MeshStandardMaterial({
-                        color: 0x00ffff,
-                        emissive: 0x00ffff,
-                        emissiveIntensity: 1
-                    })
-                );
-                coreColumn.position.y = 2;
-                reactor.add(coreColumn);
-
-                const coreTop = new THREE.Mesh(
-                    new THREE.SphereGeometry(1.2, 32, 32),
-                    new THREE.MeshStandardMaterial({
-                        color: 0xffffff,
-                        emissive: 0x00ffff,
-                        emissiveIntensity: 2
-                    })
-                );
-                coreTop.position.y = 3.5;
-                reactor.add(coreTop);
-
-                reactor.position.set(0, 0, 0);
-                engGroup.add(reactor);
-
-                // Antimatter vault window (looking down into shaft)
-                const vaultFrame = new THREE.Mesh(
-                    new THREE.BoxGeometry(4, 0.3, 4),
-                    this.accentMaterial
-                );
-                vaultFrame.position.set(0, 0.15, 4);
-                engGroup.add(vaultFrame);
-
-                const vaultGlass = new THREE.Mesh(
-                    new THREE.PlaneGeometry(3.5, 3.5),
-                    new THREE.MeshPhysicalMaterial({
-                        color: 0xff0000,
-                        transparent: true,
-                        opacity: 0.4,
-                        metalness: 0.9,
-                        roughness: 0.1,
-                        side: THREE.DoubleSide
-                    })
-                );
-                vaultGlass.rotation.x = -Math.PI / 2;
-                vaultGlass.position.set(0, 0.1, 4);
-                vaultGlass.name = 'VaultWindow';
-                vaultGlass.userData = { isViewport: true };
-                engGroup.add(vaultGlass);
-                this.interactables.push({
-                    mesh: vaultGlass,
-                    type: 'viewport',
-                    data: 'Warning: Power fluctuations in Sector 4. Antimatter containment: Stable.'
-                });
-
-                // Engineering terminal
-                const terminal = this.createTerminal('Warning: Power fluctuations in Sector 4. Antimatter containment: Stable.');
-                terminal.position.set(5, 1.5, -4);
-                terminal.rotation.y = Math.PI / 4;
-                engGroup.add(terminal);
-                this.interactables.push({
-                    mesh: terminal,
-                    type: 'terminal',
-                    data: 'Warning: Power fluctuations in Sector 4. Antimatter containment: Stable.'
-                });
-
-                engGroup.position.set(21, 0, 15);
-                this.scene.add(engGroup);
-                this.rooms.push(engGroup);
-            }
-
-            buildExterior() {
-                // Skybox sphere with lunar surface and stars
-                const skyGeometry = new THREE.SphereGeometry(200, 32, 32);
-                const skyMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        earthTexture: { value: TextureGenerator.createEarthTexture() },
-                        time: { value: 0 }
-                    },
-                    vertexShader: `
-                        varying vec2 vUv;
-                        varying vec3 vNormal;
-                        void main() {
-                            vUv = uv;
-                            vNormal = normalize(normalMatrix * normal);
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform sampler2D earthTexture;
-                        uniform float time;
-                        varying vec2 vUv;
-                        varying vec3 vNormal;
-                        
-                        void main() {
-                            vec3 skyColor = vec3(0.0, 0.0, 0.05);
-                            
-                            // Stars
-                            float stars = 0.0;
-                            for (int i = 0; i < 5; i++) {
-                                vec2 starPos = fract(vUv * float(i + 10) * 10.0);
-                                float star = step(0.995, dot(starPos, starPos));
-                                stars += star * 0.8;
-                            }
-                            
-                            // Earth in the distance
-                            vec3 earthDir = normalize(vec3(0.5, 0.3, -1.0));
-                            float earthDot = dot(vNormal, earthDir);
-                            vec3 earthColor = vec3(0.0);
-                            
-                            if (earthDot > 0.0) {
-                                vec2 earthUV = vUv * 2.0 - 0.5;
-                                earthColor = texture2D(earthTexture, earthUV).rgb * earthDot * 0.8;
-                            }
-                            
-                            // Lunar surface at bottom
-                            float lunarDot = dot(vNormal, vec3(0.0, -1.0, 0.0));
-                            vec3 lunarColor = vec3(0.3, 0.3, 0.3) * smoothstep(0.0, 0.3, lunarDot);
-                            
-                            vec3 finalColor = skyColor + stars + earthColor + lunarColor;
-                            gl_FragColor = vec4(finalColor, 1.0);
-                        }
-                    `,
-                    side: THREE.BackSide
-                });
-
-                const skybox = new THREE.Mesh(skyGeometry, skyMaterial);
-                this.scene.add(skybox);
-
-                // Lunar ground plane
-                const groundGeometry = new THREE.PlaneGeometry(1000, 1000, 100, 100);
-                const groundMaterial = new THREE.MeshStandardMaterial({
-                    map: TextureGenerator.createLunarSurfaceTexture(),
-                    color: 0x888888,
-                    roughness: 0.9,
-                    metalness: 0.1
-                });
-                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-                ground.rotation.x = -Math.PI / 2;
-                ground.position.y = -0.5;
-                this.scene.add(ground);
-            }
-
-            addLighting() {
-                // Ambient light
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
-                this.scene.add(ambientLight);
-
-                // Directional light (sun)
-                const sunLight = new THREE.DirectionalLight(0xffffff, 1);
-                sunLight.position.set(100, 50, 100);
-                this.scene.add(sunLight);
-
-                // Point lights in rooms
-                const roomPositions = [
-                    [0, 3, 0],      // Airlock
-                    [21, 3, 7.5],   // Corridor
-                    [21, 8, 0],     // Hub
-                    [21, 3, -15],   // Lab
-                    [21, 4, 15]     // Engineering
-                ];
-
-                roomPositions.forEach(pos => {
-                    const light = new THREE.PointLight(0xffffff, 0.8, 20);
-                    light.position.set(...pos);
-                    this.scene.add(light);
-                });
-
-                // Blue accent lights
-                const accentPositions = [
-                    [-4, 2, 3],     // Airlock terminal
-                    [24, 2.5, -3],  // Hub terminal
-                    [25, 2.5, -15], // Lab terminal
-                    [26, 2.5, 11]   // Engineering terminal
-                ];
-
-                accentPositions.forEach(pos => {
-                    const light = new THREE.PointLight(0x00ffff, 0.5, 5);
-                    light.position.set(...pos);
-                    this.scene.add(light);
-                });
-
-                // Red emergency lights in engineering
-                for (let i = 0; i < 4; i++) {
-                    const emergencyLight = new THREE.PointLight(0xff0000, 0.3, 8);
-                    emergencyLight.position.set(21 + (i % 2 - 0.5) * 10, 4, 15 + (Math.floor(i / 2) - 0.5) * 8);
-                    this.scene.add(emergencyLight);
-                }
-            }
-
-            createTerminal(text) {
-                const terminalGroup = new THREE.Group();
-
-                // Screen
-                const screen = new THREE.Mesh(
-                    new THREE.PlaneGeometry(1.2, 0.8),
-                    this.screenMaterial
-                );
-                screen.name = 'TerminalScreen';
-                screen.userData = { isTerminal: true, logText: text };
-                terminalGroup.add(screen);
-
-                // Frame
-                const frame = new THREE.Mesh(
-                    new THREE.BoxGeometry(1.4, 1, 0.1),
-                    new THREE.MeshStandardMaterial({
-                        color: 0x333333,
-                        metalness: 0.8,
-                        roughness: 0.2
-                    })
-                );
-                frame.position.z = -0.05;
-                terminalGroup.add(frame);
-
-                // Stand
-                const stand = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.1, 0.15, 1.5, 8),
-                    new THREE.MeshStandardMaterial({
-                        color: 0x555555,
-                        metalness: 0.6,
-                        roughness: 0.4
-                    })
-                );
-                stand.position.y = -1;
-                terminalGroup.add(stand);
-
-                return terminalGroup;
-            }
-
-            animateDoor(door, targetOpen) {
-                if (door.animating) return;
-                
-                door.animating = true;
-                const startTime = Date.now();
-                const duration = 1000; // 1 second
-                const startY = door.mesh.userData.originalY;
-                const targetY = targetOpen ? startY + 3 : startY;
-
-                const animate = () => {
-                    const elapsed = Date.now() - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    
-                    // Smooth easing
-                    const eased = 1 - Math.pow(1 - progress, 3);
-                    
-                    door.mesh.position.y = startY + (targetY - startY) * eased;
-                    
-                    if (progress < 1) {
-                        requestAnimationFrame(animate);
-                    } else {
-                        door.isOpen = targetOpen;
-                        door.animating = false;
-                        door.mesh.userData.isDoor = targetOpen; // Update collision state
-                    }
-                };
-
-                animate();
-            }
-
-            getColliders() {
-                return this.colliders;
-            }
+      }
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
+  }
+  
+  static createLunarSurfaceTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+    
+    // Base grey
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(0, 0, 1024, 1024);
+    
+    // Noise
+    for (let i = 0; i < 50000; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const gray = Math.floor(Math.random() * 60 + 100);
+      ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+    
+    // Craters
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const radius = Math.random() * 30 + 10;
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, '#555555');
+      gradient.addColorStop(0.7, '#888888');
+      gradient.addColorStop(1, '#aaaaaa');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+  
+  static createScreenUITexture(text = 'SYSTEM OK') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = '#001100';
+    ctx.fillRect(0, 0, 256, 128);
+    
+    ctx.fillStyle = '#00ff00';
+    ctx.font = '16px Courier New';
+    ctx.fillText(text, 10, 30);
+    
+    // Scanlines
+    for (let y = 0; y < 128; y += 4) {
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+      ctx.fillRect(0, y, 256, 2);
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+  
+  static createAlienGlyphTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 256, 256);
+    
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = 3;
+    
+    // Alien symbol
+    ctx.beginPath();
+    ctx.moveTo(128, 40);
+    ctx.lineTo(180, 100);
+    ctx.lineTo(160, 180);
+    ctx.lineTo(96, 180);
+    ctx.lineTo(76, 100);
+    ctx.closePath();
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(128, 128, 40, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+}
+
+// ============== AUDIO MANAGER ==============
+class AudioManager {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.sounds = new Map();
+    this.initialized = false;
+  }
+  
+  init() {
+    if (this.initialized) return;
+    
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.5;
+      this.masterGain.connect(this.ctx.destination);
+      this.initialized = true;
+    } catch (e) {
+      console.warn('Web Audio API not available');
+    }
+  }
+  
+  playTone(freq, duration, type = 'sine', volume = 0.3) {
+    if (!this.initialized) return;
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.value = freq;
+    
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  }
+  
+  playDoorSound() {
+    // Pneumatic hiss
+    if (!this.initialized) return;
+    
+    const bufferSize = this.ctx.sampleRate * 1.5;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.5);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    
+    noise.start();
+  }
+  
+  playTerminalBeep() {
+    this.playTone(1200, 0.1, 'square', 0.2);
+  }
+  
+  playFootstep() {
+    this.playTone(Utils.randomRange(100, 200), 0.1, 'noise', 0.15);
+  }
+  
+  playAlarm() {
+    this.playTone(800, 0.3, 'sawtooth', 0.3);
+    setTimeout(() => this.playTone(600, 0.3, 'sawtooth', 0.3), 350);
+  }
+  
+  createAmbientHum() {
+    if (!this.initialized) return;
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.value = 60;
+    
+    gain.gain.value = 0.05;
+    
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    
+    osc.start();
+    return { osc, gain };
+  }
+}
+
+// ============== PLAYER CONTROLLER ==============
+class PlayerController {
+  constructor(camera, scene) {
+    this.camera = camera;
+    this.scene = scene;
+    this.velocity = new THREE.Vector3();
+    this.direction = new THREE.Vector3();
+    this.moveSpeed = 3.0;
+    this.sprintSpeed = 5.0;
+    this.isSprinting = false;
+    this.isGrounded = true;
+    this.cameraHeight = 1.7;
+    
+    this.keys = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false,
+      sprint: false
+    };
+    
+    this.yaw = 0;
+    this.pitch = 0;
+    this.pitchLimit = Math.PI / 2 - 0.1;
+    
+    this.mobileInput = {
+      moveX: 0,
+      moveY: 0,
+      lookX: 0,
+      lookY: 0,
+      active: false
+    };
+    
+    this.setupControls();
+  }
+  
+  setupControls() {
+    // Keyboard
+    document.addEventListener('keydown', (e) => this.onKeyDown(e));
+    document.addEventListener('keyup', (e) => this.onKeyUp(e));
+    
+    // Mouse (Pointer Lock)
+    document.addEventListener('mousemove', (e) => this.onMouseMove(e));
+    
+    // Touch (Mobile)
+    this.setupTouchControls();
+  }
+  
+  setupTouchControls() {
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (isTouch) {
+      document.getElementById('mobile-controls').classList.add('active');
+      this.mobileInput.active = true;
+      
+      const joystickZone = document.getElementById('joystick-zone');
+      const joystickKnob = document.getElementById('joystick-knob');
+      const lookZone = document.getElementById('look-zone');
+      
+      let joystickCenter = { x: 75, y: 75 };
+      let joystickActive = false;
+      
+      // Joystick
+      joystickZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        joystickActive = true;
+        const touch = e.touches[0];
+        const rect = joystickZone.getBoundingClientRect();
+        joystickCenter = { x: rect.left + 75, y: rect.top + 75 };
+        this.updateJoystick(touch, joystickKnob, joystickCenter);
+      });
+      
+      joystickZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (joystickActive) {
+          const touch = e.touches[0];
+          this.updateJoystick(touch, joystickKnob, joystickCenter);
         }
-
-        // ============================================
-        // INTERACTION SYSTEM - Raycasting and interactions
-        // ============================================
-        class InteractionSystem {
-            constructor(camera, scene, worldBuilder, uiManager) {
-                this.camera = camera;
-                this.scene = scene;
-                this.worldBuilder = worldBuilder;
-                this.uiManager = uiManager;
-                this.raycaster = new THREE.Raycaster();
-                this.center = new THREE.Vector2(0, 0);
-                this.currentInteractable = null;
-                this.observationTimer = 0;
-                this.isObserving = false;
-            }
-
-            update(deltaTime) {
-                // Cast ray from center of screen
-                this.raycaster.setFromCamera(this.center, this.camera);
-                
-                // Get all interactable meshes
-                const interactableMeshes = this.worldBuilder.interactables.map(obj => obj.mesh);
-                const doorMeshes = this.worldBuilder.doors.map(door => door.mesh);
-                const allMeshes = [...interactableMeshes, ...doorMeshes];
-                
-                const intersects = this.raycaster.intersectObjects(allMeshes, true);
-
-                if (intersects.length > 0) {
-                    const intersect = intersects[0];
-                    let foundObject = null;
-                    let objectType = null;
-
-                    // Check if it's a terminal or viewport
-                    const terminalObj = this.worldBuilder.interactables.find(obj => 
-                        obj.mesh === intersect.object || obj.mesh === intersect.object.parent
-                    );
-                    
-                    if (terminalObj) {
-                        foundObject = terminalObj;
-                        objectType = terminalObj.type;
-                    }
-
-                    // Check if it's a door
-                    const doorObj = this.worldBuilder.doors.find(door => 
-                        door.mesh === intersect.object
-                    );
-                    
-                    if (doorObj && !doorObj.isOpen && !doorObj.animating) {
-                        foundObject = doorObj;
-                        objectType = 'door';
-                    }
-
-                    if (foundObject) {
-                        this.currentInteractable = foundObject;
-                        
-                        if (objectType === 'door') {
-                            this.uiManager.showInteractionPrompt('Press E to Open Door');
-                        } else if (objectType === 'terminal') {
-                            this.uiManager.showInteractionPrompt('Press E to Access Terminal');
-                        } else if (objectType === 'viewport') {
-                            this.uiManager.showInteractionPrompt('Looking at Earth...');
-                            this.handleObservation(deltaTime);
-                            return;
-                        }
-                    } else {
-                        this.currentInteractable = null;
-                        this.uiManager.hideInteractionPrompt();
-                        this.isObserving = false;
-                        this.observationTimer = 0;
-                    }
-                } else {
-                    this.currentInteractable = null;
-                    this.uiManager.hideInteractionPrompt();
-                    this.isObserving = false;
-                    this.observationTimer = 0;
-                }
-            }
-
-            handleObservation(deltaTime) {
-                if (!this.isObserving) {
-                    this.isObserving = true;
-                    this.observationTimer = 0;
-                }
-                
-                this.observationTimer += deltaTime;
-                
-                if (this.observationTimer >= 2.0) {
-                    this.uiManager.showObservationMessage();
-                }
-            }
-
-            interact() {
-                if (!this.currentInteractable) return false;
-
-                // Check if it's a door
-                const doorObj = this.worldBuilder.doors.find(door => 
-                    door === this.currentInteractable
-                );
-
-                if (doorObj) {
-                    this.worldBuilder.animateDoor(doorObj, !doorObj.isOpen);
-                    return true;
-                }
-
-                // Check if it's a terminal
-                const terminalObj = this.worldBuilder.interactables.find(obj => 
-                    obj === this.currentInteractable
-                );
-
-                if (terminalObj && terminalObj.type === 'terminal') {
-                    this.uiManager.showTerminal(terminalObj.data);
-                    return true;
-                }
-
-                return false;
-            }
-
-            reset() {
-                this.currentInteractable = null;
-                this.isObserving = false;
-                this.observationTimer = 0;
-                this.uiManager.hideInteractionPrompt();
-            }
+      });
+      
+      joystickZone.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        joystickActive = false;
+        this.mobileInput.moveX = 0;
+        this.mobileInput.moveY = 0;
+        joystickKnob.style.transform = 'translate(-50%, -50%)';
+      });
+      
+      // Look zone
+      let lastLookX = 0;
+      let lastLookY = 0;
+      
+      lookZone.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        lastLookX = touch.clientX;
+        lastLookY = touch.clientY;
+      });
+      
+      lookZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - lastLookX;
+        const deltaY = touch.clientY - lastLookY;
+        
+        this.yaw -= deltaX * 0.005;
+        this.pitch -= deltaY * 0.005;
+        this.pitch = Utils.clamp(this.pitch, -this.pitchLimit, this.pitchLimit);
+        
+        lastLookX = touch.clientX;
+        lastLookY = touch.clientY;
+      });
+      
+      // Interact button
+      const interactBtn = document.getElementById('mobile-interact');
+      let interactPressTime = 0;
+      
+      interactBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        interactPressTime = Date.now();
+        game.interactionSystem.startInteraction();
+      });
+      
+      interactBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const holdDuration = Date.now() - interactPressTime;
+        if (holdDuration >= 500) {
+          game.interactionSystem.completeObservation();
+        } else {
+          game.interactionSystem.triggerInteraction();
         }
+        game.interactionSystem.endInteraction();
+      });
+    }
+  }
+  
+  updateJoystick(touch, knob, center) {
+    const maxDist = 50;
+    let dx = touch.clientX - center.x;
+    let dy = touch.clientY - center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist > maxDist) {
+      dx = (dx / dist) * maxDist;
+      dy = (dy / dist) * maxDist;
+    }
+    
+    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    
+    this.mobileInput.moveX = dx / maxDist;
+    this.mobileInput.moveY = dy / maxDist;
+  }
+  
+  onKeyDown(e) {
+    switch(e.code) {
+      case 'KeyW': this.keys.forward = true; break;
+      case 'KeyS': this.keys.backward = true; break;
+      case 'KeyA': this.keys.left = true; break;
+      case 'KeyD': this.keys.right = true; break;
+      case 'ShiftLeft': this.isSprinting = true; break;
+    }
+  }
+  
+  onKeyUp(e) {
+    switch(e.code) {
+      case 'KeyW': this.keys.forward = false; break;
+      case 'KeyS': this.keys.backward = false; break;
+      case 'KeyA': this.keys.left = false; break;
+      case 'KeyD': this.keys.right = false; break;
+      case 'ShiftLeft': this.isSprinting = false; break;
+    }
+  }
+  
+  onMouseMove(e) {
+    if (document.pointerLockElement === document.getElementById('gameCanvas')) {
+      this.yaw -= e.movementX * 0.002;
+      this.pitch -= e.movementY * 0.002;
+      this.pitch = Utils.clamp(this.pitch, -this.pitchLimit, this.pitchLimit);
+    }
+  }
+  
+  update(delta) {
+    // Update camera rotation
+    this.camera.rotation.order = 'YXZ';
+    this.camera.rotation.y = this.yaw;
+    this.camera.rotation.x = this.pitch;
+    
+    // Calculate movement direction
+    const speed = this.isSprinting ? this.sprintSpeed : this.moveSpeed;
+    const actualSpeed = this.mobileInput.active ? 
+      Math.sqrt(this.mobileInput.moveX ** 2 + this.mobileInput.moveY ** 2) * speed :
+      ((this.keys.forward || this.keys.backward || this.keys.left || this.keys.right) ? speed : 0);
+    
+    // Get forward and right vectors
+    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+    const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+    
+    // Movement input
+    let moveX = 0, moveZ = 0;
+    
+    if (this.mobileInput.active) {
+      moveX = this.mobileInput.moveX;
+      moveZ = -this.mobileInput.moveY;
+    } else {
+      if (this.keys.forward) moveZ = -1;
+      if (this.keys.backward) moveZ = 1;
+      if (this.keys.left) moveX = -1;
+      if (this.keys.right) moveX = 1;
+    }
+    
+    // Apply movement
+    if (moveX !== 0 || moveZ !== 0) {
+      const moveVector = new THREE.Vector3();
+      moveVector.addScaledVector(forward, moveZ);
+      moveVector.addScaledVector(right, moveX);
+      moveVector.normalize();
+      
+      const newPos = this.camera.position.clone().addScaledVector(moveVector, actualSpeed * delta);
+      
+      // Simple collision check
+      if (!this.checkCollision(newPos)) {
+        this.camera.position.copy(newPos);
+      }
+      
+      // Footstep sound
+      if (Math.random() < 0.02) {
+        game.audioManager.playFootstep();
+      }
+    }
+    
+    // Keep camera at correct height
+    this.camera.position.y = this.cameraHeight;
+  }
+  
+  checkCollision(position) {
+    // Simple bounding box collision
+    const playerBox = new THREE.Box3();
+    const playerSize = 0.5;
+    playerBox.setFromCenterAndSize(position, new THREE.Vector3(playerSize, 2, playerSize));
+    
+    for (const collider of game.worldBuilder.colliders) {
+      if (playerBox.intersectsBox(collider)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+}
 
-        // ============================================
-        // UI MANAGER - Handles all UI elements
-        // ============================================
-        class UIManager {
-            constructor() {
-                this.oxygenFill = document.getElementById('oxygen-fill');
-                this.interactionPrompt = document.getElementById('interaction-prompt');
-                this.terminalOverlay = document.getElementById('terminal-overlay');
-                this.terminalText = document.getElementById('terminal-text');
-                this.terminalClose = document.getElementById('terminal-close');
-                this.observationOverlay = document.getElementById('observation-overlay');
-                this.startScreen = document.getElementById('start-screen');
-                this.startButton = document.getElementById('start-button');
+// ============== DOOR MANAGER ==============
+class DoorManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.doors = new Map();
+  }
+  
+  createDoor(id, position, rotation, type = 'sliding', size = { width: 2, height: 2.5, depth: 0.2 }) {
+    const group = new THREE.Group();
+    group.position.copy(position);
+    group.rotation.y = rotation;
+    
+    // Door frame
+    const frameGeo = new THREE.BoxGeometry(size.width + 0.2, size.height + 0.2, 0.3);
+    const frameMat = new THREE.MeshStandardMaterial({ 
+      color: 0x333333,
+      metalness: 0.8,
+      roughness: 0.3
+    });
+    const frame = new THREE.Mesh(frameGeo, frameMat);
+    group.add(frame);
+    
+    // Door panel
+    const panelGeo = new THREE.BoxGeometry(size.width, size.height, size.depth);
+    const panelMat = new THREE.MeshStandardMaterial({ 
+      color: 0x666666,
+      metalness: 0.7,
+      roughness: 0.4
+    });
+    const panel = new THREE.Mesh(panelGeo, panelMat);
+    
+    if (type === 'sliding') {
+      panel.position.x = -size.width / 2;
+    } else if (type === 'hexagonal') {
+      // Create hexagonal door
+      const shape = new THREE.Shape();
+      const hexRadius = size.width / 2;
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const x = hexRadius * Math.cos(angle);
+        const y = hexRadius * Math.sin(angle);
+        if (i === 0) shape.moveTo(x, y);
+        else shape.lineTo(x, y);
+      }
+      
+      const extrudeSettings = { depth: size.depth, bevelEnabled: false };
+      const hexGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      panel.geometry.dispose();
+      panel.geometry = hexGeo;
+      panel.position.x = -size.width / 2;
+    }
+    
+    // Door handle/light
+    const lightGeo = new THREE.SphereGeometry(0.1, 8, 8);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const light = new THREE.Mesh(lightGeo, lightMat);
+    light.position.set(size.width / 2 - 0.3, 0, size.depth / 2 + 0.1);
+    panel.add(light);
+    
+    group.add(panel);
+    this.scene.add(group);
+    
+    // Collision box
+    const collider = new THREE.Box3();
+    collider.setFromObject(panel);
+    
+    this.doors.set(id, {
+      group,
+      panel,
+      light,
+      collider,
+      isOpen: false,
+      targetPosition: type === 'sliding' ? size.width / 2 : size.width / 2,
+      closedPosition: -size.width / 2,
+      type,
+      animating: false,
+      animationProgress: 0
+    });
+    
+    return id;
+  }
+  
+  openDoor(id) {
+    const door = this.doors.get(id);
+    if (!door || door.isOpen || door.animating) return;
+    
+    door.animating = true;
+    door.isOpen = true;
+    door.light.material.color.setHex(0x00ff00);
+    game.audioManager.playDoorSound();
+    
+    const animate = () => {
+      door.animationProgress += 0.02;
+      
+      if (door.animationProgress >= 1) {
+        door.panel.position.x = door.targetPosition;
+        door.animating = false;
+        this.scene.remove(door.collider);
+        return;
+      }
+      
+      const t = Utils.lerp(door.closedPosition, door.targetPosition, door.animationProgress);
+      door.panel.position.x = t;
+      
+      // Update collider
+      door.collider.setFromObject(door.panel);
+      
+      requestAnimationFrame(animate);
+    };
+    
+    animate();
+  }
+  
+  closeDoor(id) {
+    const door = this.doors.get(id);
+    if (!door || !door.isOpen || door.animating) return;
+    
+    door.animating = true;
+    door.isOpen = false;
+    door.light.material.color.setHex(0xff0000);
+    game.audioManager.playDoorSound();
+    
+    const animate = () => {
+      door.animationProgress -= 0.02;
+      
+      if (door.animationProgress <= 0) {
+        door.panel.position.x = door.closedPosition;
+        door.animating = false;
+        this.scene.add(door.collider);
+        return;
+      }
+      
+      const t = Utils.lerp(door.closedPosition, door.targetPosition, door.animationProgress);
+      door.panel.position.x = t;
+      
+      door.collider.setFromObject(door.panel);
+      
+      requestAnimationFrame(animate);
+    };
+    
+    animate();
+  }
+  
+  toggleDoor(id) {
+    const door = this.doors.get(id);
+    if (door) {
+      door.isOpen ? this.closeDoor(id) : this.openDoor(id);
+    }
+  }
+  
+  getDoorAtPosition(position, maxDistance = 3) {
+    for (const [id, door] of this.doors) {
+      const doorPos = door.group.position;
+      const dist = position.distanceTo(doorPos);
+      if (dist < maxDistance) {
+        return { id, door, distance: dist };
+      }
+    }
+    return null;
+  }
+}
 
-                this.oxygen = 100;
-                this.isPaused = false;
-
-                // Bind close button
-                this.terminalClose.addEventListener('click', () => {
-                    this.hideTerminal();
-                });
-            }
-
-            startGame(onStartCallback) {
-                this.startButton.addEventListener('click', () => {
-                    this.startScreen.style.display = 'none';
-                    onStartCallback();
-                });
-            }
-
-            updateOxygen(amount) {
-                this.oxygen = Math.max(0, Math.min(100, this.oxygen + amount));
-                this.oxygenFill.style.width = `${this.oxygen}%`;
-                
-                if (this.oxygen < 20) {
-                    this.oxygenFill.style.background = 'linear-gradient(90deg, #ff0000, #ff4400)';
-                } else {
-                    this.oxygenFill.style.background = 'linear-gradient(90deg, #00ffff, #0088ff)';
-                }
-            }
-
-            showInteractionPrompt(text) {
-                this.interactionPrompt.textContent = text;
-                this.interactionPrompt.style.opacity = 1;
-            }
-
-            hideInteractionPrompt() {
-                this.interactionPrompt.style.opacity = 0;
-            }
-
-            showTerminal(text) {
-                this.terminalText.textContent = text;
-                this.terminalOverlay.style.display = 'block';
-                this.isPaused = true;
-            }
-
-            hideTerminal() {
-                this.terminalOverlay.style.display = 'none';
-                this.isPaused = false;
-            }
-
-            showObservationMessage() {
-                this.observationOverlay.style.display = 'block';
-                setTimeout(() => {
-                    this.observationOverlay.style.display = 'none';
-                }, 3000);
-            }
-
-            togglePause() {
-                this.isPaused = !this.isPaused;
-                return this.isPaused;
-            }
-
-            isGamePaused() {
-                return this.isPaused;
-            }
+// ============== TERMINAL MANAGER ==============
+class TerminalManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.terminals = new Map();
+    this.activeTerminal = null;
+    this.typingInterval = null;
+  }
+  
+  createTerminal(id, position, rotation, logId) {
+    const group = new THREE.Group();
+    group.position.copy(position);
+    group.rotation.y = rotation;
+    
+    // Console base
+    const baseGeo = new THREE.BoxGeometry(0.8, 1.2, 0.4);
+    const baseMat = new THREE.MeshStandardMaterial({ 
+      color: 0x222222,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const base = new THREE.Mesh(baseGeo, baseMat);
+    group.add(base);
+    
+    // Screen
+    const screenGeo = new THREE.PlaneGeometry(0.6, 0.4);
+    const screenMat = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff,
+      side: THREE.DoubleSide
+    });
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(0, 0.3, 0.21);
+    group.add(screen);
+    
+    // Screen glow
+    const glowGeo = new THREE.PlaneGeometry(0.55, 0.35);
+    const glowMat = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.set(0, 0.3, 0.22);
+    group.add(glow);
+    
+    this.scene.add(group);
+    
+    this.terminals.set(id, {
+      group,
+      screen,
+      glow,
+      logId,
+      read: false,
+      position: position.clone()
+    });
+    
+    return id;
+  }
+  
+  interactWithTerminal(id) {
+    const terminal = this.terminals.get(id);
+    if (!terminal) return;
+    
+    this.activeTerminal = terminal;
+    const log = game.narrativeSystem.getLog(terminal.logId);
+    
+    // Show terminal UI
+    document.getElementById('terminal-ui').classList.add('active');
+    document.getElementById('terminal-title').textContent = log.title;
+    document.getElementById('terminal-text').textContent = '';
+    
+    // Typewriter effect
+    game.audioManager.playTerminalBeep();
+    let charIndex = 0;
+    
+    this.typingInterval = setInterval(() => {
+      if (charIndex < log.content.length) {
+        document.getElementById('terminal-text').textContent += log.content[charIndex];
+        charIndex++;
+        if (charIndex % 3 === 0) {
+          game.audioManager.playTerminalBeep();
         }
+      } else {
+        clearInterval(this.typingInterval);
+      }
+    }, 30);
+    
+    // Mark as read
+    terminal.read = true;
+    terminal.glow.material.color.setHex(0x00ff00);
+  }
+  
+  closeTerminal() {
+    if (this.typingInterval) {
+      clearInterval(this.typingInterval);
+      this.typingInterval = null;
+    }
+    
+    document.getElementById('terminal-ui').classList.remove('active');
+    this.activeTerminal = null;
+  }
+  
+  getNearestTerminal(position, maxDistance = 3) {
+    for (const [id, terminal] of this.terminals) {
+      const dist = position.distanceTo(terminal.position);
+      if (dist < maxDistance) {
+        return { id, terminal, distance: dist };
+      }
+    }
+    return null;
+  }
+}
 
-        // ============================================
-        // PLAYER CONTROLLER - Movement and camera
-        // ============================================
-        class PlayerController {
-            constructor(camera, scene, worldBuilder) {
-                this.camera = camera;
-                this.scene = scene;
-                this.worldBuilder = worldBuilder;
-                this.velocity = new THREE.Vector3();
-                this.direction = new THREE.Vector3();
-                this.moveForward = false;
-                this.moveBackward = false;
-                this.moveLeft = false;
-                this.moveRight = false;
-                this.canJump = false;
-                this.speed = 10;
-                this.sensitivity = 0.002;
-                
-                this.isLocked = false;
-                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+// ============== OBSERVATION MANAGER ==============
+class ObservationManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.viewports = new Map();
+    this.activeObservation = null;
+    this.observationProgress = 0;
+    this.originalFOV = 75;
+  }
+  
+  createViewport(id, position, rotation, observationId) {
+    const geo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32);
+    const mat = new THREE.MeshBasicMaterial({ 
+      color: 0x0088ff,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide
+    });
+    const viewport = new THREE.Mesh(geo, mat);
+    viewport.position.copy(position);
+    viewport.rotation.x = Math.PI / 2;
+    viewport.rotation.y = rotation;
+    
+    this.scene.add(viewport);
+    
+    this.viewports.set(id, {
+      mesh: viewport,
+      observationId,
+      position: position.clone()
+    });
+    
+    return id;
+  }
+  
+  startObservation(id) {
+    const viewport = this.viewports.get(id);
+    if (!viewport) return;
+    
+    this.activeObservation = viewport;
+    this.observationProgress = 0;
+    
+    // Zoom effect
+    const progressEl = document.getElementById('observation-progress');
+    progressEl.classList.add('visible');
+  }
+  
+  updateObservation(delta) {
+    if (!this.activeObservation) return;
+    
+    this.observationProgress += delta * 0.5;
+    
+    const fillEl = document.getElementById('observation-fill');
+    fillEl.style.width = `${this.observationProgress * 100}%`;
+    
+    // Zoom FOV
+    const targetFOV = this.originalFOV - (this.observationProgress * 30);
+    game.player.camera.fov = targetFOV;
+    game.player.camera.updateProjectionMatrix();
+    
+    if (this.observationProgress >= 1) {
+      this.completeObservation();
+    }
+  }
+  
+  completeObservation() {
+    if (!this.activeObservation) return;
+    
+    const observation = game.narrativeSystem.getObservation(this.activeObservation.observationId);
+    if (observation) {
+      game.narrativeSystem.triggerObservation(observation.id);
+    }
+    
+    // Reset
+    this.activeObservation = null;
+    this.observationProgress = 0;
+    
+    document.getElementById('observation-progress').classList.remove('visible');
+    document.getElementById('observation-fill').style.width = '0%';
+    
+    game.player.camera.fov = this.originalFOV;
+    game.player.camera.updateProjectionMatrix();
+  }
+  
+  cancelObservation() {
+    this.activeObservation = null;
+    this.observationProgress = 0;
+    
+    document.getElementById('observation-progress').classList.remove('visible');
+    document.getElementById('observation-fill').style.width = '0%';
+    
+    game.player.camera.fov = this.originalFOV;
+    game.player.camera.updateProjectionMatrix();
+  }
+  
+  getViewportAtPosition(position, maxDistance = 3) {
+    for (const [id, viewport] of this.viewports) {
+      const dist = position.distanceTo(viewport.position);
+      if (dist < maxDistance) {
+        return { id, viewport, distance: dist };
+      }
+    }
+    return null;
+  }
+}
 
-                if (!this.isMobile) {
-                    this.setupDesktopControls();
-                } else {
-                    this.setupMobileControls();
-                }
+// ============== INTERACTION SYSTEM ==============
+class InteractionSystem {
+  constructor() {
+    this.raycaster = new THREE.Raycaster();
+    this.center = new THREE.Vector2(0, 0);
+    this.currentInteractable = null;
+    this.interactionHoldTime = 0;
+    this.isHolding = false;
+  }
+  
+  update() {
+    this.raycaster.setFromCamera(this.center, game.player.camera);
+    
+    // Check doors
+    const doorResult = this.checkDoors();
+    // Check terminals
+    const terminalResult = this.checkTerminals();
+    // Check viewports
+    const viewportResult = this.checkViewports();
+    
+    let interactable = null;
+    let prompt = '';
+    
+    if (doorResult && doorResult.distance < 3) {
+      interactable = { type: 'door', ...doorResult };
+      prompt = doorResult.door.isOpen ? 'Close Door [E]' : 'Open Door [E]';
+    } else if (terminalResult && terminalResult.distance < 3) {
+      interactable = { type: 'terminal', ...terminalResult };
+      prompt = terminalResult.terminal.read ? 'Terminal [Read]' : 'Access Terminal [E]';
+    } else if (viewportResult && viewportResult.distance < 2.5) {
+      interactable = { type: 'viewport', ...viewportResult };
+      prompt = 'Observe [Hold E]';
+    }
+    
+    this.currentInteractable = interactable;
+    this.updatePrompt(prompt, interactable !== null);
+  }
+  
+  checkDoors() {
+    return game.doorManager.getDoorAtPosition(game.player.camera.position, 3);
+  }
+  
+  checkTerminals() {
+    return game.terminalManager.getNearestTerminal(game.player.camera.position, 3);
+  }
+  
+  checkViewports() {
+    return game.observationManager.getViewportAtPosition(game.player.camera.position, 2.5);
+  }
+  
+  updatePrompt(text, visible) {
+    const promptEl = document.getElementById('interaction-prompt');
+    promptEl.textContent = text;
+    promptEl.classList.toggle('visible', visible);
+  }
+  
+  triggerInteraction() {
+    if (!this.currentInteractable) return;
+    
+    switch(this.currentInteractable.type) {
+      case 'door':
+        game.doorManager.toggleDoor(this.currentInteractable.id);
+        break;
+      case 'terminal':
+        game.terminalManager.interactWithTerminal(this.currentInteractable.id);
+        break;
+    }
+  }
+  
+  startInteraction() {
+    if (this.currentInteractable?.type === 'viewport') {
+      this.isHolding = true;
+      this.interactionHoldTime = 0;
+      game.observationManager.startObservation(this.currentInteractable.id);
+    }
+  }
+  
+  endInteraction() {
+    if (this.isHolding) {
+      this.isHolding = false;
+      game.observationManager.cancelObservation();
+    }
+  }
+  
+  completeObservation() {
+    if (this.isHolding) {
+      game.observationManager.completeObservation();
+      this.isHolding = false;
+    }
+  }
+  
+  updateHold(delta) {
+    if (this.isHolding) {
+      this.interactionHoldTime += delta;
+      game.observationManager.updateObservation(delta);
+    }
+  }
+}
 
-                // Initial position in airlock
-                this.camera.position.set(0, 1.7, 0);
-            }
+// ============== NARRATIVE SYSTEM ==============
+class NarrativeSystem {
+  constructor() {
+    this.state = {
+      currentAct: 1,
+      logsRead: new Set(),
+      observationsMade: new Set(),
+      flags: new Map(),
+      day: 1,
+      hour: 8
+    };
+    
+    this.logDatabase = {
+      'airlock_alpha': {
+        title: 'SYSTEM LOG - DAY 1',
+        content: 'Arrival complete. Robotic construction finished 11.3 months ago. You are the first human to set foot in Selene Outpost.\n\nAll systems nominal. Solar arrays at 98% efficiency. Life support cycling normally.\n\nWelcome, Commander.'
+      },
+      'hab_module': {
+        title: 'PERSONAL LOG - DAY 3',
+        content: 'Found a tool in Engineering that was moved. I didn\'t move it. Did I?\n\nSleep has been... difficult. The silence out here is absolute. Sometimes I think I hear something in the walls.\n\nProbably just the thermal expansion.'
+      },
+      'lab_module': {
+        title: 'RESEARCH LOG - DAY 5',
+        content: 'Soil samples contain pulsing crystalline structures. Frequency matches deep seismic readings.\n\nThe patterns are... geometric. Too regular to be natural.\n\nDr. Chen thinks we should drill deeper. I\'m not so sure.'
+      },
+      'central_hub': {
+        title: 'MAIN SYSTEM ALERT',
+        content: 'WARNING: Unexplained power fluctuations detected in sectors 7-G through 9-K.\n\nRobots active in restricted zones without commands.\n\nSecurity protocols engaged. Investigate immediately.'
+      },
+      'engineering': {
+        title: 'MAINTENANCE LOG - DAY 7',
+        content: 'Reactor output unstable. Had to reroute power through secondary conduits.\n\nFound strange markings near the vault shaft. They weren\'t there yesterday.\n\nThe lights keep flickering even after I replaced the fixtures.'
+      },
+      'hydroponics': {
+        title: 'BOTANICAL SURVEY - DAY 9',
+        content: 'The alien flora is thriving. Growth rate 300% above projections.\n\nThey respond to sound. To voice.\n\nI caught one of the vines moving when I wasn\'t looking directly at it.\n\nImpossible. Must be fatigue.'
+      },
+      'seismic_station': {
+        title: 'SEISMIC ANALYSIS - DAY 12',
+        content: 'Artificial structure confirmed 2.3km below surface. Estimated age: 50,000+ years.\n\nEnergy signature: antimatter.\n\nThe glyphs on the floor... they\'re warm now.\n\nSomething is waking up.'
+      },
+      'airlock_bravo': {
+        title: 'HIDDEN CACHE - DAY ??',
+        content: 'I\'ve tried 17 times to prevent it. The Moon will explode.\n\nDon\'t trust the robots. Trust the glyphs.\n\nIf you\'re reading this, I\'m already gone. Find the vault. Stop the—\n\n[LOG CORRUPTED]'
+      }
+    };
+    
+    this.observations = {
+      'earth_view': {
+        id: 'earth_view',
+        text: 'Earth hangs in the black void, a blue marble of impossible beauty. From here, all human history seems so small.',
+        flag: 'saw_earth'
+      },
+      'solar_arrays': {
+        id: 'solar_arrays',
+        text: 'The solar arrays stretch across the lunar surface like metallic wings, drinking in the harsh sunlight.',
+        flag: 'saw_arrays'
+      },
+      'vault_shaft': {
+        id: 'vault_shaft',
+        text: 'The shaft descends into darkness. Your instruments detect energy readings that shouldn\'t exist.',
+        flag: 'saw_vault'
+      },
+      'alien_glyphs': {
+        id: 'alien_glyphs',
+        text: 'The glyphs pulse with inner light. They seem to shift when you look away. Ancient. Waiting.',
+        flag: 'saw_glyphs'
+      }
+    };
+  }
+  
+  getLog(id) {
+    return this.logDatabase[id] || { title: 'UNKNOWN', content: 'No data available.' };
+  }
+  
+  getObservation(id) {
+    return this.observations[id];
+  }
+  
+  readLog(id) {
+    this.state.logsRead.add(id);
+  }
+  
+  triggerObservation(id) {
+    const observation = this.observations[id];
+    if (observation && !this.state.observationsMade.has(id)) {
+      this.state.observationsMade.add(id);
+      this.state.flags.set(observation.flag, true);
+      
+      // Show observation text briefly
+      this.showObservationText(observation.text);
+    }
+  }
+  
+  showObservationText(text) {
+    const promptEl = document.getElementById('interaction-prompt');
+    const originalText = promptEl.textContent;
+    promptEl.textContent = text;
+    promptEl.style.fontSize = '12px';
+    promptEl.style.maxWidth = '300px';
+    
+    setTimeout(() => {
+      promptEl.textContent = originalText;
+      promptEl.style.fontSize = '16px';
+    }, 3000);
+  }
+  
+  setFlag(name, value) {
+    this.state.flags.set(name, value);
+  }
+  
+  getFlag(name) {
+    return this.state.flags.get(name);
+  }
+  
+  updateTime() {
+    this.state.hour += 0.1;
+    if (this.state.hour >= 24) {
+      this.state.hour = 0;
+      this.state.day++;
+    }
+    
+    document.getElementById('mission-clock').textContent = 
+      `DAY ${this.state.day} | ${Math.floor(this.state.hour).toString().padStart(2, '0')}:${Math.floor((this.state.hour % 1) * 60).toString().padStart(2, '0')}`;
+  }
+}
 
-            setupDesktopControls() {
-                // Pointer lock
-                const onMouseMove = (event) => {
-                    if (!this.isLocked) return;
-
-                    const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-                    const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
-                    this.camera.rotation.y -= movementX * this.sensitivity;
-                    this.camera.rotation.x -= movementY * this.sensitivity;
-                    this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
-                };
-
-                document.addEventListener('mousemove', onMouseMove, false);
-
-                // Lock pointer on click
-                document.addEventListener('click', () => {
-                    if (!this.isLocked) {
-                        document.body.requestPointerLock();
-                    }
-                });
-
-                document.addEventListener('pointerlockchange', () => {
-                    this.isLocked = document.pointerLockElement === document.body;
-                });
-
-                // Keyboard controls
-                const onKeyDown = (event) => {
-                    switch (event.code) {
-                        case 'KeyW': this.moveForward = true; break;
-                        case 'KeyS': this.moveBackward = true; break;
-                        case 'KeyA': this.moveLeft = true; break;
-                        case 'KeyD': this.moveRight = true; break;
-                    }
-                };
-
-                const onKeyUp = (event) => {
-                    switch (event.code) {
-                        case 'KeyW': this.moveForward = false; break;
-                        case 'KeyS': this.moveBackward = false; break;
-                        case 'KeyA': this.moveLeft = false; break;
-                        case 'KeyD': this.moveRight = false; break;
-                    }
-                };
-
-                document.addEventListener('keydown', onKeyDown, false);
-                document.addEventListener('keyup', onKeyUp, false);
-            }
-
-            setupMobileControls() {
-                const leftJoystick = document.getElementById('left-joystick');
-                const rightJoystick = document.getElementById('right-joystick');
-                const leftKnob = leftJoystick.querySelector('.joystick-knob');
-                const rightKnob = rightJoystick.querySelector('.joystick-knob');
-
-                let leftTouchId = null;
-                let rightTouchId = null;
-                let leftStartX, leftStartY;
-                let rightStartX, rightStartY;
-
-                document.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    for (let i = 0; i < e.changedTouches.length; i++) {
-                        const touch = e.changedTouches[i];
-                        const rect = leftJoystick.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        
-                        if (Math.hypot(touch.clientX - centerX, touch.clientY - centerY) < rect.width / 2 && leftTouchId === null) {
-                            leftTouchId = touch.identifier;
-                            leftStartX = touch.clientX;
-                            leftStartY = touch.clientY;
-                        }
-
-                        const rect2 = rightJoystick.getBoundingClientRect();
-                        const centerX2 = rect2.left + rect2.width / 2;
-                        const centerY2 = rect2.top + rect2.height / 2;
-                        
-                        if (Math.hypot(touch.clientX - centerX2, touch.clientY - centerY2) < rect2.width / 2 && rightTouchId === null) {
-                            rightTouchId = touch.identifier;
-                            rightStartX = touch.clientX;
-                            rightStartY = touch.clientY;
-                        }
-                    }
-                }, { passive: false });
-
-                document.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    for (let i = 0; i < e.changedTouches.length; i++) {
-                        const touch = e.changedTouches[i];
-                        
-                        if (touch.identifier === leftTouchId) {
-                            const deltaX = touch.clientX - leftStartX;
-                            const deltaY = touch.clientY - leftStartY;
-                            const distance = Math.min(Math.hypot(deltaX, deltaY), 50);
-                            const angle = Math.atan2(deltaY, deltaX);
-                            
-                            leftKnob.style.transform = `translate(-50%, -50%) translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
-                            
-                            // Set movement flags
-                            this.moveForward = deltaY < -10;
-                            this.moveBackward = deltaY > 10;
-                            this.moveLeft = deltaX < -10;
-                            this.moveRight = deltaX > 10;
-                        }
-
-                        if (touch.identifier === rightTouchId) {
-                            const deltaX = touch.clientX - rightStartX;
-                            const deltaY = touch.clientY - rightStartY;
-                            const distance = Math.min(Math.hypot(deltaX, deltaY), 50);
-                            const angle = Math.atan2(deltaY, deltaX);
-                            
-                            rightKnob.style.transform = `translate(-50%, -50%) translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
-                            
-                            // Rotate camera
-                            this.camera.rotation.y -= deltaX * 0.005;
-                            this.camera.rotation.x -= deltaY * 0.005;
-                            this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
-                        }
-                    }
-                }, { passive: false });
-
-                document.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    for (let i = 0; i < e.changedTouches.length; i++) {
-                        const touch = e.changedTouches[i];
-                        
-                        if (touch.identifier === leftTouchId) {
-                            leftTouchId = null;
-                            leftKnob.style.transform = 'translate(-50%, -50%)';
-                            this.moveForward = false;
-                            this.moveBackward = false;
-                            this.moveLeft = false;
-                            this.moveRight = false;
-                        }
-
-                        if (touch.identifier === rightTouchId) {
-                            rightTouchId = null;
-                            rightKnob.style.transform = 'translate(-50%, -50%)';
-                        }
-                    }
-                }, { passive: false });
-
-                // Tap to interact
-                document.addEventListener('touchstart', (e) => {
-                    if (e.target === leftJoystick || e.target === rightJoystick || e.target.classList.contains('joystick-knob')) {
-                        return;
-                    }
-                    // Trigger interaction
-                    if (window.game && window.game.interactionSystem) {
-                        window.game.interactionSystem.interact();
-                    }
-                });
-            }
-
-            update(deltaTime) {
-                if (this.isMobile) {
-                    this.updateMobile(deltaTime);
-                } else {
-                    this.updateDesktop(deltaTime);
-                }
-            }
-
-            updateDesktop(deltaTime) {
-                if (!this.isLocked) return;
-
-                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-                this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-                this.direction.normalize();
-
-                const actualSpeed = this.speed * deltaTime;
-
-                if (this.moveForward || this.moveBackward) {
-                    this.velocity.z = this.direction.z * actualSpeed;
-                } else {
-                    this.velocity.z = 0;
-                }
-
-                if (this.moveLeft || this.moveRight) {
-                    this.velocity.x = this.direction.x * actualSpeed;
-                } else {
-                    this.velocity.x = 0;
-                }
-
-                // Apply movement relative to camera direction
-                const forward = new THREE.Vector3(0, 0, -1);
-                forward.applyQuaternion(this.camera.quaternion);
-                forward.y = 0;
-                forward.normalize();
-
-                const right = new THREE.Vector3(1, 0, 0);
-                right.applyQuaternion(this.camera.quaternion);
-                right.y = 0;
-                right.normalize();
-
-                const movement = new THREE.Vector3();
-                movement.addScaledVector(forward, -this.velocity.z);
-                movement.addScaledVector(right, this.velocity.x);
-
-                // Simple collision detection
-                const newPosition = this.camera.position.clone().add(movement);
-                
-                // Keep player within bounds (simple box collision)
-                const bounds = {
-                    minX: -50, maxX: 50,
-                    minY: 0.5, maxY: 3.5,
-                    minZ: -50, maxX: 50
-                };
-
-                newPosition.x = Math.max(bounds.minX, Math.min(bounds.maxX, newPosition.x));
-                newPosition.y = Math.max(bounds.minY, Math.min(bounds.maxY, newPosition.y));
-                newPosition.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, newPosition.z));
-
-                this.camera.position.copy(newPosition);
-            }
-
-            updateMobile(deltaTime) {
-                const actualSpeed = this.speed * deltaTime;
-
-                const forward = new THREE.Vector3(0, 0, -1);
-                forward.applyQuaternion(this.camera.quaternion);
-                forward.y = 0;
-                forward.normalize();
-
-                const right = new THREE.Vector3(1, 0, 0);
-                right.applyQuaternion(this.camera.quaternion);
-                right.y = 0;
-                right.normalize();
-
-                const movement = new THREE.Vector3();
-                
-                if (this.moveForward) movement.addScaledVector(forward, actualSpeed);
-                if (this.moveBackward) movement.addScaledVector(forward, -actualSpeed);
-                if (this.moveRight) movement.addScaledVector(right, actualSpeed);
-                if (this.moveLeft) movement.addScaledVector(right, -actualSpeed);
-
-                // Simple collision detection
-                const newPosition = this.camera.position.clone().add(movement);
-                
-                const bounds = {
-                    minX: -50, maxX: 50,
-                    minY: 0.5, maxY: 3.5,
-                    minZ: -50, maxX: 50
-                };
-
-                newPosition.x = Math.max(bounds.minX, Math.min(bounds.maxX, newPosition.x));
-                newPosition.y = Math.max(bounds.minY, Math.min(bounds.maxY, newPosition.y));
-                newPosition.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, newPosition.z));
-
-                this.camera.position.copy(newPosition);
-            }
-
-            getPosition() {
-                return this.camera.position.clone();
-            }
-
-            getDirection() {
-                const direction = new THREE.Vector3(0, 0, -1);
-                direction.applyQuaternion(this.camera.quaternion);
-                return direction;
-            }
+// ============== WORLD BUILDER ==============
+class WorldBuilder {
+  constructor(scene) {
+    this.scene = scene;
+    this.modules = new Map();
+    this.colliders = [];
+    this.currentModule = 'airlock_alpha';
+    
+    this.moduleConfigs = {
+      'airlock_alpha': {
+        position: { x: 0, y: 0, z: 0 },
+        rotation: 0,
+        size: { radius: 3, length: 6 },
+        color: 0xcccccc,
+        connections: ['hab_module', 'lab_module'],
+        features: ['hex_door', 'terminal', 'viewport']
+      },
+      'hab_module': {
+        position: { x: -10, y: 0, z: -8 },
+        rotation: 0,
+        size: { radius: 4, length: 8 },
+        color: 0xdddddd,
+        connections: ['airlock_alpha', 'central_hub'],
+        features: ['sleep_pod', 'galley', 'window']
+      },
+      'lab_module': {
+        position: { x: 10, y: 0, z: -8 },
+        rotation: 0,
+        size: { radius: 4, length: 10 },
+        color: 0xddeeff,
+        connections: ['airlock_alpha', 'central_hub'],
+        features: ['microscope', 'tanks', 'screens']
+      },
+      'central_hub': {
+        position: { x: 0, y: 0, z: -20 },
+        rotation: 0,
+        size: { radius: 6, length: 5 },
+        color: 0xeeeeee,
+        connections: ['hab_module', 'lab_module', 'engineering', 'hydroponics'],
+        features: ['dome', 'earth_viewport', 'holomap']
+      },
+      'engineering': {
+        position: { x: -10, y: 0, z: -35 },
+        rotation: 0,
+        size: { radius: 5, length: 12 },
+        color: 0xaa8888,
+        connections: ['central_hub', 'seismic_station'],
+        features: ['reactor', 'fuse_boxes', 'red_lights']
+      },
+      'hydroponics': {
+        position: { x: 10, y: 0, z: -35 },
+        rotation: 0,
+        size: { radius: 5, length: 10 },
+        color: 0x88cc88,
+        connections: ['central_hub', 'seismic_station'],
+        features: ['plants', 'fog', 'green_lights']
+      },
+      'seismic_station': {
+        position: { x: 0, y: 0, z: -50 },
+        rotation: 0,
+        size: { radius: 4, length: 8 },
+        color: 0x9988aa,
+        connections: ['engineering', 'hydroponics', 'airlock_bravo'],
+        features: ['terminals', 'glyphs', 'exterior_viewport']
+      },
+      'airlock_bravo': {
+        position: { x: 0, y: 0, z: -65 },
+        rotation: 0,
+        size: { radius: 3, length: 6 },
+        color: 0xbbbbbb,
+        connections: ['seismic_station'],
+        features: ['outer_door', 'eva_suits', 'glyph_window']
+      }
+    };
+  }
+  
+  buildAll() {
+    // Build each module
+    for (const [id, config] of Object.entries(this.moduleConfigs)) {
+      this.buildModule(id, config);
+    }
+    
+    // Build corridors between connected modules
+    this.buildCorridors();
+    
+    // Add exterior (lunar surface)
+    this.buildExterior();
+    
+    // Add lighting
+    this.setupLighting();
+  }
+  
+  buildModule(id, config) {
+    const group = new THREE.Group();
+    group.position.set(config.position.x, config.position.y, config.position.z);
+    group.rotation.y = config.rotation;
+    
+    // Cylindrical walls
+    const wallGeo = new THREE.CylinderGeometry(
+      config.size.radius,
+      config.size.radius,
+      config.size.length,
+      16,
+      1,
+      true
+    );
+    
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: config.color,
+      metalness: 0.8,
+      roughness: 0.2,
+      side: THREE.BackSide
+    });
+    
+    const walls = new THREE.Mesh(wallGeo, wallMat);
+    group.add(walls);
+    
+    // Floor
+    const floorGeo = new THREE.CircleGeometry(config.size.radius, 16);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -config.size.length / 2;
+    group.add(floor);
+    
+    // Ceiling
+    const ceiling = floor.clone();
+    ceiling.position.y = config.size.length / 2;
+    group.add(ceiling);
+    
+    // Add module-specific features
+    this.addModuleFeatures(group, id, config);
+    
+    // Collision box
+    const collider = new THREE.Box3();
+    const size = config.size.radius * 2;
+    collider.set(
+      new THREE.Vector3(-size/2, -config.size.length/2, -size/2),
+      new THREE.Vector3(size/2, config.size.length/2, size/2)
+    );
+    collider.translate(group.position);
+    this.colliders.push(collider);
+    
+    this.scene.add(group);
+    this.modules.set(id, { group, config });
+  }
+  
+  addModuleFeatures(group, id, config) {
+    const r = config.size.radius;
+    const h = config.size.length;
+    
+    switch(id) {
+      case 'airlock_alpha':
+        // Hex door at entrance
+        game.doorManager.createDoor('door_airlock_main', 
+          new THREE.Vector3(0, 0, r), 0, 'hexagonal');
+        
+        // Terminal
+        game.terminalManager.createTerminal('terminal_airlock',
+          new THREE.Vector3(-2, -h/2 + 1, r - 0.5), 0, 'airlock_alpha');
+        
+        // Viewport to solar arrays
+        game.observationManager.createViewport('viewport_solar',
+          new THREE.Vector3(r - 0.1, 0, -2), Math.PI / 2, 'solar_arrays');
+        break;
+        
+      case 'hab_module':
+        // Sleep pod
+        const podGeo = new THREE.BoxGeometry(1, 0.5, 2);
+        const podMat = new THREE.MeshStandardMaterial({ color: 0x444466 });
+        const pod = new THREE.Mesh(podGeo, podMat);
+        pod.position.set(-r + 1.5, -h/2 + 0.25, 0);
+        group.add(pod);
+        
+        // Window to Earth
+        game.observationManager.createViewport('viewport_earth',
+          new THREE.Vector3(-r + 0.1, 0, 2), -Math.PI / 2, 'earth_view');
+        break;
+        
+      case 'lab_module':
+        // Sample tanks (glowing)
+        for (let i = 0; i < 3; i++) {
+          const tankGeo = new THREE.CylinderGeometry(0.3, 0.3, 1, 8);
+          const tankMat = new THREE.MeshBasicMaterial({ 
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.6
+          });
+          const tank = new THREE.Mesh(tankGeo, tankMat);
+          tank.position.set(-r + 1, -h/2 + 0.5, i * 1.5 - 1.5);
+          group.add(tank);
         }
-
-        // ============================================
-        // MAIN GAME CLASS
-        // ============================================
-        class Game {
-            constructor() {
-                this.container = document.getElementById('canvas-container');
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
-                this.clock = new THREE.Clock();
-                
-                this.uiManager = new UIManager();
-                this.worldBuilder = null;
-                this.playerController = null;
-                this.interactionSystem = null;
-                this.audioSystem = new AudioSystem();
-
-                this.init();
-            }
-
-            init() {
-                // Setup renderer
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setPixelRatio(window.devicePixelRatio);
-                this.renderer.shadowMap.enabled = true;
-                this.container.appendChild(this.renderer.domElement);
-
-                // Handle window resize
-                window.addEventListener('resize', () => {
-                    this.camera.aspect = window.innerWidth / window.innerHeight;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-
-                // Start game when button is clicked
-                this.uiManager.startGame(() => {
-                    this.startGame();
-                });
-
-                // Handle escape key
-                document.addEventListener('keydown', (event) => {
-                    if (event.code === 'Escape') {
-                        if (document.pointerLockElement === document.body) {
-                            document.exitPointerLock();
-                        }
-                    }
-                    
-                    if (event.code === 'KeyE' && !this.uiManager.isGamePaused()) {
-                        if (this.interactionSystem) {
-                            this.interactionSystem.interact();
-                        }
-                    }
-                });
-
-                // Start render loop
-                this.animate();
-            }
-
-            startGame() {
-                // Initialize audio
-                this.audioSystem.init();
-
-                // Build world
-                this.worldBuilder = new WorldBuilder(this.scene);
-                this.worldBuilder.buildBase();
-
-                // Create player controller
-                this.playerController = new PlayerController(this.camera, this.scene, this.worldBuilder);
-
-                // Create interaction system
-                this.interactionSystem = new InteractionSystem(this.camera, this.scene, this.worldBuilder, this.uiManager);
-
-                // Store reference for mobile tap interaction
-                window.game = this;
-            }
-
-            animate() {
-                requestAnimationFrame(() => this.animate());
-
-                const deltaTime = this.clock.getDelta();
-
-                if (!this.uiManager.isGamePaused()) {
-                    // Update player
-                    if (this.playerController) {
-                        this.playerController.update(deltaTime);
-                    }
-
-                    // Update interaction system
-                    if (this.interactionSystem) {
-                        this.interactionSystem.update(deltaTime);
-                    }
-
-                    // Slowly deplete oxygen
-                    this.uiManager.updateOxygen(-0.1 * deltaTime);
-                }
-
-                // Render
-                this.renderer.render(this.scene, this.camera);
-            }
+        break;
+        
+      case 'central_hub':
+        // Dome ceiling
+        const domeGeo = new THREE.SphereGeometry(r, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+        const domeMat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          metalness: 0.5,
+          roughness: 0.3,
+          side: THREE.BackSide
+        });
+        const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.position.y = h / 2;
+        group.add(dome);
+        
+        // Earth viewport in dome
+        game.observationManager.createViewport('viewport_earth_dome',
+          new THREE.Vector3(0, h/2 - 1, -r + 0.5), 0, 'earth_view');
+        break;
+        
+      case 'engineering':
+        // Reactor core (glowing)
+        const reactorGeo = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
+        const reactorMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+        const reactor = new THREE.Mesh(reactorGeo, reactorMat);
+        reactor.position.set(0, -h/2 + 1, 0);
+        group.add(reactor);
+        
+        // Red emergency lights
+        for (let i = 0; i < 4; i++) {
+          const light = new THREE.PointLight(0xff0000, 1, 5);
+          light.position.set(
+            Math.cos(i * Math.PI / 2) * (r - 1),
+            h/2 - 1,
+            Math.sin(i * Math.PI / 2) * (r - 1)
+          );
+          group.add(light);
         }
+        break;
+        
+      case 'hydroponics':
+        // Plant racks
+        for (let i = 0; i < 4; i++) {
+          const plantGeo = new THREE.ConeGeometry(0.2, 0.8, 4);
+          const plantMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+          const plant = new THREE.Mesh(plantGeo, plantMat);
+          plant.position.set(
+            (i % 2 - 0.5) * 2,
+            -h/2 + 0.4,
+            Math.floor(i / 2) * 2 - 1
+          );
+          group.add(plant);
+        }
+        
+        // Green lighting
+        const greenLight = new THREE.PointLight(0x00ff00, 0.5, 8);
+        greenLight.position.set(0, h/2 - 1, 0);
+        group.add(greenLight);
+        break;
+        
+      case 'seismic_station':
+        // Alien glyphs on floor (glowing)
+        const glyphGeo = new THREE.CircleGeometry(1, 6);
+        const glyphMat = new THREE.MeshBasicMaterial({ 
+          color: 0xff00ff,
+          transparent: true,
+          opacity: 0.7
+        });
+        const glyph = new THREE.Mesh(glyphGeo, glyphMat);
+        glyph.rotation.x = -Math.PI / 2;
+        glyph.position.set(0, -h/2 + 0.01, 0);
+        group.add(glyph);
+        
+        // Exterior viewport
+        game.observationManager.createViewport('viewport_exterior',
+          new THREE.Vector3(r - 0.1, 0, 0), Math.PI / 2, 'alien_glyphs');
+        break;
+        
+      case 'airlock_bravo':
+        // Outer door
+        game.doorManager.createDoor('door_airlock_outer',
+          new THREE.Vector3(0, 0, -r), Math.PI, 'hexagonal');
+        break;
+    }
+  }
+  
+  buildCorridors() {
+    const corridorLength = 8;
+    const corridorRadius = 2;
+    
+    const connections = [
+      ['airlock_alpha', 'hab_module'],
+      ['airlock_alpha', 'lab_module'],
+      ['hab_module', 'central_hub'],
+      ['lab_module', 'central_hub'],
+      ['central_hub', 'engineering'],
+      ['central_hub', 'hydroponics'],
+      ['engineering', 'seismic_station'],
+      ['hydroponics', 'seismic_station'],
+      ['seismic_station', 'airlock_bravo']
+    ];
+    
+    for (const [from, to] of connections) {
+      const fromMod = this.moduleConfigs[from];
+      const toMod = this.moduleConfigs[to];
+      
+      const startPos = new THREE.Vector3(
+        fromMod.position.x,
+        fromMod.position.y,
+        fromMod.position.z
+      );
+      
+      const endPos = new THREE.Vector3(
+        toMod.position.x,
+        toMod.position.y,
+        toMod.position.z
+      );
+      
+      const midPoint = startPos.clone().lerp(endPos, 0.5);
+      const direction = endPos.clone().sub(startPos).normalize();
+      const distance = startPos.distanceTo(endPos);
+      
+      // Corridor cylinder
+      const corridorGeo = new THREE.CylinderGeometry(
+        corridorRadius,
+        corridorRadius,
+        distance - fromMod.size.radius * 2,
+        8,
+        1,
+        true
+      );
+      
+      const corridorMat = new THREE.MeshStandardMaterial({
+        color: 0xaaaaaa,
+        metalness: 0.7,
+        roughness: 0.3,
+        side: THREE.BackSide
+      });
+      
+      const corridor = new THREE.Mesh(corridorGeo, corridorMat);
+      corridor.position.copy(midPoint);
+      corridor.lookAt(endPos);
+      corridor.rotateX(Math.PI / 2);
+      
+      this.scene.add(corridor);
+      
+      // Corridor floor
+      const floorGeo = new THREE.BoxGeometry(distance - fromMod.size.radius * 2, 0.1, corridorRadius * 2);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.position.copy(midPoint);
+      floor.position.y = -fromMod.size.length / 2;
+      floor.lookAt(endPos);
+      
+      this.scene.add(floor);
+      
+      // Doors at each end
+      const doorId1 = `door_${from}_to_${to}`;
+      const doorId2 = `door_${to}_to_${from}`;
+      
+      game.doorManager.createDoor(doorId1, startPos.clone().add(direction.clone().multiplyScalar(fromMod.size.radius)), 
+        direction.angleTo(new THREE.Vector3(1, 0, 0)), 'sliding', { width: 2.5, height: 2.5, depth: 0.3 });
+    }
+  }
+  
+  buildExterior() {
+    // Lunar surface
+    const surfaceGeo = new THREE.PlaneGeometry(200, 200, 50, 50);
+    
+    // Add some height variation
+    const positions = surfaceGeo.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+      positions[i + 2] = Math.random() * 0.5;
+    }
+    surfaceGeo.computeVertexNormals();
+    
+    const surfaceMat = new THREE.MeshStandardMaterial({
+      map: TextureGenerator.createLunarSurfaceTexture(),
+      color: 0x888888,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    
+    const surface = new THREE.Mesh(surfaceGeo, surfaceMat);
+    surface.rotation.x = -Math.PI / 2;
+    surface.position.y = -10;
+    this.scene.add(surface);
+    
+    // Stars
+    const starsGeo = new THREE.BufferGeometry();
+    const starPositions = [];
+    for (let i = 0; i < 5000; i++) {
+      const x = (Math.random() - 0.5) * 500;
+      const y = (Math.random() - 0.5) * 500;
+      const z = (Math.random() - 0.5) * 500;
+      if (Math.abs(x) > 30 || Math.abs(z) > 30 || y > 0) {
+        starPositions.push(x, y, z);
+      }
+    }
+    
+    starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+    const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+    const stars = new THREE.Points(starsGeo, starsMat);
+    this.scene.add(stars);
+    
+    // Earth (visible through viewports)
+    const earthGeo = new THREE.SphereGeometry(10, 32, 32);
+    const earthMat = new THREE.MeshBasicMaterial({
+      color: 0x0066ff,
+      transparent: true,
+      opacity: 0.8
+    });
+    const earth = new THREE.Mesh(earthGeo, earthMat);
+    earth.position.set(0, 50, -100);
+    this.scene.add(earth);
+  }
+  
+  setupLighting() {
+    // Ambient light
+    const ambient = new THREE.AmbientLight(0x404040, 0.3);
+    this.scene.add(ambient);
+    
+    // Main directional light (sun)
+    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    sun.position.set(100, 100, 50);
+    this.scene.add(sun);
+  }
+  
+  getCurrentModule(position) {
+    let nearest = null;
+    let nearestDist = Infinity;
+    
+    for (const [id, module] of this.modules) {
+      const dist = position.distanceTo(module.group.position);
+      if (dist < nearestDist) {
+        nearest = id;
+        nearestDist = dist;
+      }
+    }
+    
+    return nearest;
+  }
+  
+  updateModuleUI(position) {
+    const module = this.getCurrentModule(position);
+    if (module && module !== this.currentModule) {
+      this.currentModule = module;
+      document.getElementById('module-name').textContent = module.toUpperCase().replace('_', ' ');
+    }
+  }
+}
 
-        // Start the game
-        const game = new Game();
-    </script>
+// ============== UI MANAGER ==============
+class UIManager {
+  constructor() {
+    this.oxygen = 100;
+    this.power = 75;
+    this.debugMode = new URLSearchParams(window.location.search).get('debug') === 'true';
+  }
+  
+  init() {
+    if (this.debugMode) {
+      document.getElementById('debug-overlay').classList.add('active');
+    }
+  }
+  
+  update(delta) {
+    // Update oxygen (depletes in Engineering, restores in Hydroponics)
+    const currentModule = game.worldBuilder.currentModule;
+    
+    if (currentModule === 'engineering') {
+      this.oxygen = Math.max(0, this.oxygen - delta * 2);
+    } else if (currentModule === 'hydroponics') {
+      this.oxygen = Math.min(100, this.oxygen + delta * 5);
+    }
+    
+    document.getElementById('oxygen-bar').style.width = `${this.oxygen}%`;
+    
+    // Update debug info
+    if (this.debugMode) {
+      const pos = game.player.camera.position;
+      document.getElementById('pos-debug').textContent = 
+        `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+      document.getElementById('module-debug').textContent = game.worldBuilder.currentModule;
+    }
+  }
+  
+  updateFPS(fps) {
+    if (this.debugMode) {
+      document.getElementById('fps-counter').textContent = fps;
+    }
+  }
+}
+
+// ============== MAIN GAME CLASS ==============
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('gameCanvas');
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.clock = new THREE.Clock();
+    
+    this.player = null;
+    this.worldBuilder = null;
+    this.doorManager = null;
+    this.terminalManager = null;
+    this.observationManager = null;
+    this.interactionSystem = null;
+    this.narrativeSystem = null;
+    this.audioManager = null;
+    this.uiManager = null;
+    
+    this.isRunning = false;
+    this.lastFrameTime = 0;
+    this.frameCount = 0;
+    this.fps = 0;
+  }
+  
+  init() {
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x000000);
+    this.scene.fog = new THREE.Fog(0x000000, 20, 80);
+    
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera.position.set(0, 1.7, 5);
+    
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ 
+      canvas: this.canvas,
+      antialias: true
+    });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    
+    // Initialize systems
+    this.audioManager = new AudioManager();
+    this.doorManager = new DoorManager(this.scene);
+    this.terminalManager = new TerminalManager(this.scene);
+    this.observationManager = new ObservationManager(this.scene);
+    this.narrativeSystem = new NarrativeSystem();
+    this.worldBuilder = new WorldBuilder(this.scene);
+    this.player = new PlayerController(this.camera, this.scene);
+    this.interactionSystem = new InteractionSystem();
+    this.uiManager = new UIManager();
+    
+    // Build world
+    this.worldBuilder.buildAll();
+    
+    // Event listeners
+    this.setupEventListeners();
+    
+    // UI
+    this.uiManager.init();
+    
+    console.log('Selene Outpost initialized');
+  }
+  
+  setupEventListeners() {
+    // Window resize
+    window.addEventListener('resize', () => {
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // Pointer lock
+    const startButton = document.getElementById('start-button');
+    const startScreen = document.getElementById('start-screen');
+    
+    startButton.addEventListener('click', () => {
+      this.audioManager.init();
+      startScreen.classList.add('hidden');
+      this.canvas.requestPointerLock();
+      this.isRunning = true;
+      this.animate();
+    });
+    
+    // Close terminal
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyE') {
+        if (this.terminalManager.activeTerminal) {
+          this.terminalManager.closeTerminal();
+        } else {
+          this.interactionSystem.triggerInteraction();
+        }
+      }
+      
+      if (e.code === 'Escape') {
+        if (this.terminalManager.activeTerminal) {
+          this.terminalManager.closeTerminal();
+        } else {
+          document.exitPointerLock();
+        }
+      }
+    });
+    
+    // Mouse click for interaction
+    this.canvas.addEventListener('click', () => {
+      if (document.pointerLockElement === this.canvas && !this.player.mobileInput.active) {
+        if (!this.terminalManager.activeTerminal) {
+          this.interactionSystem.triggerInteraction();
+        }
+      }
+    });
+    
+    // Mouse hold for observation
+    let mouseDownTime = 0;
+    this.canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 0 && document.pointerLockElement === this.canvas) {
+        mouseDownTime = Date.now();
+        this.interactionSystem.startInteraction();
+      }
+    });
+    
+    this.canvas.addEventListener('mouseup', (e) => {
+      if (e.button === 0) {
+        const holdDuration = Date.now() - mouseDownTime;
+        if (holdDuration >= 500) {
+          this.interactionSystem.completeObservation();
+        }
+        this.interactionSystem.endInteraction();
+      }
+    });
+  }
+  
+  animate() {
+    if (!this.isRunning) return;
+    
+    requestAnimationFrame(() => this.animate());
+    
+    const delta = Math.min(this.clock.getDelta(), 0.1);
+    
+    // Update systems
+    this.player.update(delta);
+    this.interactionSystem.update();
+    this.interactionSystem.updateHold(delta);
+    this.worldBuilder.updateModuleUI(this.player.camera.position);
+    this.narrativeSystem.updateTime();
+    this.uiManager.update(delta);
+    
+    // FPS counter
+    this.frameCount++;
+    const currentTime = performance.now();
+    if (currentTime - this.lastFrameTime >= 1000) {
+      this.fps = this.frameCount;
+      this.frameCount = 0;
+      this.lastFrameTime = currentTime;
+      this.uiManager.updateFPS(this.fps);
+    }
+    
+    // Render
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
+// ============== INITIALIZATION ==============
+let game;
+
+window.addEventListener('load', () => {
+  game = new Game();
+  game.init();
+});
+  </script>
 </body>
 </html>
