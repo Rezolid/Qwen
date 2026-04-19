@@ -1,1 +1,40 @@
-(index.html is a source file, so no changes needed to .gitignore)
+```
+# Godot-specific ignores
+*.import
+*.uid
+export_presets.cfg
+.autoload_register
+.editor_settings-4.tres
+.godot/
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+
+# Dependencies
+node_modules/
+vendor/
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+```
