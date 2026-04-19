@@ -1,5 +1,5 @@
 ```
-# HTML test files
-test_*.html
-debug_*.html
+# Logs and temp files
+*.log
+server.log
 ```

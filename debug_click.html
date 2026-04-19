@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Debug Click</title>
+  <style>
+    body { margin: 0; background: #000; color: #fff; font-family: monospace; }
+    #start-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 500;
+    }
+    .hidden { display: none !important; }
+    #start-button {
+      padding: 15px 40px;
+      font-size: 20px;
+      background: transparent;
+      color: #0ff;
+      border: 2px solid #0ff;
+      cursor: pointer;
+    }
+    #log {
+      position: fixed;
+      top: 10px; right: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="log"></div>
+  <canvas id="gameCanvas" style="display:block;width:100vw;height:100vh;"></canvas>
+  
+  <div id="start-screen">
+    <h1>SELENE OUTPOST</h1>
+    <p>Moon Base Explorer</p>
+    <button id="start-button">BEGIN MISSION</button>
+  </div>
+
+  <script>
+    const log = (msg) => {
+      document.getElementById('log').innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + msg + '</div>';
+      console.log(msg);
+    };
+    
+    log('Page loaded');
+    
+    window.addEventListener('load', () => {
+      log('Window load event fired');
+      
+      const startButton = document.getElementById('start-button');
+      const startScreen = document.getElementById('start-screen');
+      const canvas = document.getElementById('gameCanvas');
+      
+      log('startButton: ' + startButton);
+      log('startScreen: ' + startScreen);
+      log('canvas: ' + canvas);
+      
+      startButton.addEventListener('click', () => {
+        log('BUTTON CLICKED!');
+        log('Adding hidden class to startScreen...');
+        startScreen.classList.add('hidden');
+        log('startScreen.className: ' + startScreen.className);
+        
+        log('Requesting pointer lock...');
+        canvas.requestPointerLock();
+        
+        log('Checking if startScreen is hidden after 1s...');
+        setTimeout(() => {
+          const isHidden = startScreen.classList.contains('hidden');
+          log('startScreen has hidden class: ' + isHidden);
+          log('startScreen offsetParent: ' + startScreen.offsetParent);
+        }, 1000);
+      });
+      
+      log('Event listener attached');
+    });
+  </script>
+</body>
+</html>

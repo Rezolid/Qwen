@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test</title>
+</head>
+<body>
+  <h1>Testing Three.js Load</h1>
+  <div id="status">Loading...</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    document.getElementById('status').textContent = THREE ? 'Three.js loaded successfully! Version: ' + THREE.REVISION : 'Failed';
+  </script>
+</body>
+</html>
