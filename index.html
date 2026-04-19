@@ -759,8 +759,17 @@ class PlayerController {
     document.addEventListener('keydown', (e) => this.onKeyDown(e));
     document.addEventListener('keyup', (e) => this.onKeyUp(e));
     
-    // Mouse (Pointer Lock)
-    document.addEventListener('mousemove', (e) => this.onMouseMove(e));
+    // Mouse (Pointer Lock) - always listen, not just when locked
+    document.addEventListener('mousemove', (e) => {
+      if (document.pointerLockElement === document.getElementById('gameCanvas')) {
+        this.onMouseMove(e);
+      } else if (!this.mobileInput.active && game && game.isRunning) {
+        // Allow free mouse movement even without pointer lock for testing
+        this.yaw -= e.movementX * 0.002;
+        this.pitch -= e.movementY * 0.002;
+        this.pitch = Utils.clamp(this.pitch, -this.pitchLimit, this.pitchLimit);
+      }
+    });
     
     // Touch (Mobile)
     this.setupTouchControls();
@@ -2144,11 +2153,35 @@ class Game {
     const startScreen = document.getElementById('start-screen');
     
     startButton.addEventListener('click', () => {
+      console.log('[GAME] Start button clicked!');
       this.audioManager.init();
       startScreen.classList.add('hidden');
-      this.canvas.requestPointerLock();
+      console.log('[GAME] Start screen hidden, classList:', startScreen.classList);
+      
+      // Request pointer lock with error handling
+      this.canvas.requestPointerLock = this.canvas.requestPointerLock || 
+                                        this.canvas.mozRequestPointerLock || 
+                                        this.canvas.webkitRequestPointerLock;
+      
+      if (this.canvas.requestPointerLock) {
+        this.canvas.requestPointerLock();
+        console.log('[GAME] Pointer lock requested');
+      } else {
+        console.warn('[GAME] Pointer Lock API not available, continuing anyway');
+      }
+      
       this.isRunning = true;
+      console.log('[GAME] Game is now running, starting animation loop');
       this.animate();
+    });
+    
+    // Handle pointer lock state changes
+    document.addEventListener('pointerlockchange', () => {
+      console.log('[GAME] Pointer lock changed:', document.pointerLockElement === this.canvas);
+    });
+    
+    document.addEventListener('pointerlockerror', (err) => {
+      console.error('[GAME] Pointer lock error:', err);
     });
     
     // Close terminal
@@ -2233,8 +2266,20 @@ class Game {
 let game;
 
 window.addEventListener('load', () => {
-  game = new Game();
-  game.init();
+  console.log('[INIT] Window loaded, creating game instance...');
+  try {
+    game = new Game();
+    console.log('[INIT] Game instance created, initializing...');
+    game.init();
+    console.log('[INIT] Game initialization complete');
+  } catch (error) {
+    console.error('[INIT] Error during game initialization:', error);
+    document.getElementById('start-screen').innerHTML = 
+      '<h1 style="color:#ff4444;">ERROR</h1>' +
+      '<p>Failed to initialize game</p>' +
+      '<p style="color:#888;font-size:12px;">' + error.message + '</p>' +
+      '<p style="color:#888;font-size:12px;">Check browser console for details</p>';
+  }
 });
   </script>
 </body>
