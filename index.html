@@ -246,7 +246,7 @@
             border: 2px solid #0ff;
             padding: 20px;
             overflow-y: auto;
-            z-index: 180;
+            z-index: 360;
             display: none;
             pointer-events: auto;
         }
@@ -281,7 +281,7 @@
             background: rgba(0, 20, 40, 0.95);
             border: 2px solid #0ff;
             padding: 30px;
-            z-index: 190;
+            z-index: 350;
             display: none;
             pointer-events: auto;
         }
@@ -482,6 +482,12 @@
             <div id="flashlight-indicator" class="hud-element">
                 🔦 <span id="flashlight-status">OFF</span>
             </div>
+            <div id="supplies-display" class="hud-element" style="bottom: 140px; left: 20px;">
+                SUPPLIES:<br>
+                🧪 O₂: <span id="oxygen-kits">3</span><br>
+                ⚡ PWR: <span id="power-cells">3</span><br>
+                💉 MED: <span id="medkits">2</span>
+            </div>
             <div id="interaction-prompt" class="hud-element">
                 [E] INTERACT
             </div>
@@ -496,6 +502,7 @@
             <div id="interact-btn" class="mobile-button">E</div>
             <div id="flashlight-btn" class="mobile-button">🔦</div>
             <div id="logs-btn" class="mobile-button">📋</div>
+            <div id="use-supply-btn" class="mobile-button" style="font-size: 12px;">USE<br>SUPPLY</div>
         </div>
     </div>
 
@@ -988,7 +995,7 @@
                 this.game.camera.rotation.x = this.pitch;
 
                 // Calculate movement direction
-                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+                this.direction.z = Number(this.moveBackward) - Number(this.moveForward);
                 this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
                 this.direction.normalize();
 
@@ -1641,6 +1648,11 @@
                 this.oxygenDrainRate = 0.5; // per second
                 this.powerDrainRate = 0.3; // per second
                 this.sanityDrainRate = 0.2; // per second
+                this.supplies = {
+                    oxygenKits: 3,
+                    powerCells: 3,
+                    medkits: 2
+                };
             }
 
             update(delta) {
@@ -1718,6 +1730,45 @@
             restoreSanity(amount) {
                 this.game.gameState.sanity = Math.min(100, this.game.gameState.sanity + amount);
                 this.game.uiManager.updateHUD();
+            }
+
+            useSupply(type) {
+                if (this.supplies[type] > 0) {
+                    this.supplies[type]--;
+                    
+                    switch(type) {
+                        case 'oxygenKits':
+                            this.replenishOxygen(40);
+                            this.game.uiManager.showSubtitle('Used Oxygen Kit (+40% O₂)');
+                            break;
+                        case 'powerCells':
+                            this.replenishPower(35);
+                            this.game.uiManager.showSubtitle('Used Power Cell (+35% Power)');
+                            break;
+                        case 'medkits':
+                            this.restoreSanity(30);
+                            this.game.uiManager.showSubtitle('Used Medkit (+30 Sanity)');
+                            break;
+                    }
+                    
+                    this.game.uiManager.updateHUD();
+                    this.game.uiManager.updateSuppliesDisplay();
+                    return true;
+                }
+                return false;
+            }
+
+            addSupply(type, amount = 1) {
+                if (this.supplies.hasOwnProperty(type)) {
+                    this.supplies[type] += amount;
+                    this.game.uiManager.updateSuppliesDisplay();
+                    return true;
+                }
+                return false;
+            }
+
+            getSupplies() {
+                return { ...this.supplies };
             }
         }
 
@@ -2156,9 +2207,11 @@
 
                 document.getElementById('btn-settings').addEventListener('click', () => {
                     document.getElementById('settings-panel').style.display = 'block';
+                    document.getElementById('log-viewer').style.display = 'none';
                 });
 
                 document.getElementById('btn-logs').addEventListener('click', () => {
+                    document.getElementById('settings-panel').style.display = 'none';
                     this.toggleLogViewer();
                 });
 
@@ -2168,6 +2221,7 @@
 
                 document.getElementById('btn-settings-pause').addEventListener('click', () => {
                     document.getElementById('settings-panel').style.display = 'block';
+                    document.getElementById('log-viewer').style.display = 'none';
                 });
 
                 document.getElementById('btn-main-menu').addEventListener('click', () => {
@@ -2273,8 +2327,22 @@
                     this.game.gameState.sanity < 30 ? '#f00' : '#0ff';
             }
 
+            updateSuppliesDisplay() {
+                const supplies = this.game.survivalSystem.getSupplies();
+                document.getElementById('oxygen-kits').textContent = supplies.oxygenKits;
+                document.getElementById('power-cells').textContent = supplies.powerCells;
+                document.getElementById('medkits').textContent = supplies.medkits;
+            }
+
             toggleLogViewer() {
                 const viewer = document.getElementById('log-viewer');
+                const settingsPanel = document.getElementById('settings-panel');
+                
+                // Close settings panel if open
+                if (viewer.style.display !== 'block') {
+                    settingsPanel.style.display = 'none';
+                }
+                
                 viewer.style.display = viewer.style.display === 'block' ? 'none' : 'block';
                 
                 if (viewer.style.display === 'block') {
