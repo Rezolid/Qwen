@@ -1,25 +1,3 @@
-```
-# Godot-specific ignores
-*.import
-export_presets.cfg
-.godot/
+(index.html is a source file, so no changes needed to .gitignore)
 
-# Dependencies
-res://addons/
-*.pck
-
-# Editor
-.vscode/
-.idea/
-
-# System
-.DS_Store
-Thumbs.db
-*.tmp
-*.log
-
-# Environment
-.env
-.env.local
-*.env.*
-```
+(empty)
